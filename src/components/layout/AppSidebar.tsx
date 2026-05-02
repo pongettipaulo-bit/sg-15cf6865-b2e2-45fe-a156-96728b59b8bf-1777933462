@@ -34,7 +34,7 @@ export function AppSidebar() {
     if (profile.perfil === "admin") return true;
     
     if (item.requiredPermission === "usuarios" || item.requiredPermission === "configuracoes") {
-      return profile.perfil === "admin";
+      return false;
     }
     
     const advancedResources = ["eventos", "equipamentos", "relatorios", "cadastros"];
