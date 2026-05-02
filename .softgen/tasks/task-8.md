@@ -1,6 +1,6 @@
 ---
 title: Cadastros (Admin e Avançado)
-status: in_progress
+status: done
 priority: low
 type: feature
 tags: [crud, admin, cadastros]
@@ -19,12 +19,12 @@ Páginas /cadastros/* com estrutura padrão: tabela busca/filtros, botão "+Novo
 - [x] /cadastros/categorias (dim_categoria_evento)
 - [x] /cadastros/subcategorias (dim_subcategoria_evento)
 - [x] /cadastros/escalation (dim_escalation_list)
-- [ ] /cadastros/equipamentos (dim_equipamento)
-- [ ] /cadastros/grupos-equipamento (dim_grupo_equipamento)
-- [ ] /cadastros/tipos-equipamento (dim_tipo_equipamento)
-- [ ] /cadastros/operadores (dim_operador)
-- [ ] /cadastros/operacoes (dim_operacao)
-- [ ] /cadastros/unidades (dim_unidade)
+- [x] /cadastros/equipamentos (dim_equipamento)
+- [x] /cadastros/grupos-equipamento (dim_grupo_equipamento)
+- [x] /cadastros/tipos-equipamento (dim_tipo_equipamento)
+- [x] /cadastros/operadores (dim_operador)
+- [x] /cadastros/operacoes (dim_operacao)
+- [x] /cadastros/unidades (dim_unidade)
 - [x] Estrutura consistente: tabela + busca + modal criar/editar + toggle ativo
 - [x] Controle de acesso: Admin total, Avançado só com permissão
 
