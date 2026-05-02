@@ -14,12 +14,12 @@ Configurar design system completo (cores industriais agrícolas, fontes IBM Plex
 
 ## Checklist
 - [x] Criar .softgen/project.md com Vision, Design, Features
-- [ ] Configurar globals.css com CSS variables (cores criticidade, status, sidebar)
-- [ ] Configurar tailwind.config.ts (IBM Plex Sans/Mono, cores customizadas)
-- [ ] Criar componente Sidebar com navegação e collapse
-- [ ] Criar layout _app.tsx com Sidebar + providers (Supabase, React Query, Theme)
-- [ ] Criar página index.tsx com redirect para /dashboard
-- [ ] Instalar dependências: @supabase/supabase-js, @tanstack/react-query, date-fns
+- [x] Configurar globals.css com CSS variables (cores criticidade, status, sidebar)
+- [x] Configurar tailwind.config.ts (IBM Plex Sans/Mono, cores customizadas)
+- [x] Criar componente Sidebar com navegação e collapse
+- [x] Criar layout _app.tsx com Sidebar + providers (Supabase, React Query, Theme)
+- [x] Criar página index.tsx com redirect para /dashboard
+- [x] Instalar dependências: @supabase/supabase-js, @tanstack/react-query, date-fns
 
 ## Acceptance
 - Sidebar escura (#1a1a2e) exibe logo "FieldOS" e menu de navegação

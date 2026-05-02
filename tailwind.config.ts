@@ -23,6 +23,8 @@ const config: Config = {
         },
         primary: {
           DEFAULT: "hsl(var(--primary))",
+          light: "hsl(var(--primary-light))",
+          dark: "hsl(var(--primary-dark))",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
@@ -39,18 +41,45 @@ const config: Config = {
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
+          bg: "hsl(var(--destructive-bg))",
           foreground: "hsl(var(--destructive-foreground))",
         },
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        chart: {
-          "1": "hsl(var(--chart-1))",
-          "2": "hsl(var(--chart-2))",
-          "3": "hsl(var(--chart-3))",
-          "4": "hsl(var(--chart-4))",
-          "5": "hsl(var(--chart-5))",
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          bg: "hsl(var(--success-bg))",
+          foreground: "hsl(var(--success-foreground))",
         },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          bg: "hsl(var(--warning-bg))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        critica: {
+          DEFAULT: "hsl(var(--critica))",
+          bg: "hsl(var(--critica-bg))",
+        },
+        alta: {
+          DEFAULT: "hsl(var(--alta))",
+          bg: "hsl(var(--alta-bg))",
+        },
+        media: {
+          DEFAULT: "hsl(var(--media))",
+          bg: "hsl(var(--media-bg))",
+        },
+        baixa: {
+          DEFAULT: "hsl(var(--baixa))",
+          bg: "hsl(var(--baixa-bg))",
+        },
+        status: {
+          pendente: "hsl(var(--status-pendente))",
+          "em-andamento": "hsl(var(--status-em-andamento))",
+          escalado: "hsl(var(--status-escalado))",
+          atrasado: "hsl(var(--status-atrasado))",
+          encerrado: "hsl(var(--status-encerrado))",
+        },
+        border: "hsl(var(--border))",
+        input: "hsl(var(--border))",
+        ring: "hsl(var(--ring))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -61,6 +90,10 @@ const config: Config = {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+      },
+      fontFamily: {
+        sans: ["IBM Plex Sans", "system-ui", "sans-serif"],
+        mono: ["IBM Plex Mono", "ui-monospace", "monospace"],
       },
       borderRadius: {
         lg: "var(--radius)",
