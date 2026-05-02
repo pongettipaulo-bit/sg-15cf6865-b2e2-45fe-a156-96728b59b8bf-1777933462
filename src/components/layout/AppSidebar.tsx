@@ -19,7 +19,7 @@ const navItems: NavItem[] = [
   { title: "Equipamentos", href: "/equipamentos", icon: Tractor, requiredPermission: "equipamentos" },
   { title: "Relatórios", href: "/relatorios", icon: TrendingUp, requiredPermission: "relatorios" },
   { title: "Configurações", href: "/configuracoes", icon: Settings, requiredPermission: "configuracoes" },
-  { title: "Cadastros", href: "/cadastros", icon: FileText, requiredPermission: "cadastros" },
+  { title: "Cadastros", href: "/", icon: FileText, requiredPermission: "cadastros" },
   { title: "Usuários", href: "/usuarios", icon: User, requiredPermission: "usuarios" },
 ];
 

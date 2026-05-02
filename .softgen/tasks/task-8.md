@@ -1,9 +1,9 @@
 ---
 title: Cadastros (Admin e Avançado)
-status: todo
+status: in_progress
 priority: low
 type: feature
-tags: [crud, cadastros]
+tags: [crud, admin, cadastros]
 created_by: agent
 created_at: 2026-05-02T21:52:00Z
 position: 7
@@ -13,21 +13,20 @@ position: 7
 Páginas /cadastros/* com estrutura padrão: tabela busca/filtros, botão "+Novo", modal criar/editar, toggle ativo/inativo, paginação. 10 cadastros: tipos evento, motivos, categorias, subcategorias, escalation list, equipamentos, grupos equipamento, tipos equipamento, operadores, operações, unidades. Controle de acesso por permissão granular.
 
 ## Checklist
-- [ ] Criar layout padrão cadastros com sidebar navegação entre cadastros
-- [ ] /cadastros/tipos-evento: campos código externo, nome, criticidade, SLA, categoria, subcategoria, notificar telegram
-- [ ] /cadastros/motivos: motivo, tipo evento vinculado, filtro por tipo
-- [ ] /cadastros/categorias: nome, descrição, ícone, cor
-- [ ] /cadastros/subcategorias: nome, categoria vinculada, descrição
-- [ ] /cadastros/escalation: pessoa, contato, telegram_chat_id, tipo evento, ordem, turno, nível hierárquico
-- [ ] /cadastros/equipamentos: código, nome, grupo, tipo, unidade
-- [ ] /cadastros/grupos-equipamento: código, nome
-- [ ] /cadastros/tipos-equipamento: código, nome
-- [ ] /cadastros/operadores: código, nome
-- [ ] /cadastros/operacoes: código, nome
-- [ ] /cadastros/unidades: código, nome
-- [ ] Modal CRUD padrão para cada cadastro
-- [ ] Paginação com 50 itens por página
-- [ ] Busca instantânea no lado cliente após carregar dados
+- [x] Criar página índice /cadastros com grid de cards navegáveis
+- [ ] /cadastros/tipos-evento (dim_tipo_evento)
+- [ ] /cadastros/motivos (dim_motivo_evento)
+- [ ] /cadastros/categorias (dim_categoria_evento)
+- [ ] /cadastros/subcategorias (dim_subcategoria_evento)
+- [ ] /cadastros/escalation (dim_escalation_list)
+- [ ] /cadastros/equipamentos (dim_equipamento)
+- [ ] /cadastros/grupos-equipamento (dim_grupo_equipamento)
+- [ ] /cadastros/tipos-equipamento (dim_tipo_equipamento)
+- [ ] /cadastros/operadores (dim_operador)
+- [ ] /cadastros/operacoes (dim_operacao)
+- [ ] /cadastros/unidades (dim_unidade)
+- [ ] Estrutura consistente: tabela + busca + modal criar/editar + toggle ativo
+- [ ] Controle de acesso: Admin total, Avançado só com permissão
 
 ## Acceptance
 - Cada cadastro exibe tabela com dados do Supabase e busca funcional
