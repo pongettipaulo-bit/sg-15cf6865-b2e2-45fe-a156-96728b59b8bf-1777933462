@@ -22,16 +22,9 @@ export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
 
   const visibleItems = navItems.filter((item) => {
-    // Se não tem perfil carregado ainda, mostra todos os itens
     if (!profile) return true;
-    
-    // Admin vê tudo
     if (profile.perfil === "admin") return true;
-    
-    // Itens marcados como adminOnly são só para admin
     if (item.adminOnly) return false;
-    
-    // Outros perfis veem todos os itens não-admin
     return true;
   });
 
@@ -47,7 +40,7 @@ export function AppSidebar() {
         {!collapsed && (
           <div>
             <h1 className="text-xl font-semibold text-primary-light">FieldOS</h1>
-            <p className="text-xs text-sidebar/60">Gestão Operacional</p>
+            <p className="text-xs text-white/60">Gestão Operacional</p>
           </div>
         )}
         <Button
@@ -70,10 +63,10 @@ export function AppSidebar() {
             <Link key={item.path} href={item.path}>
               <div
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors cursor-pointer",
+                  "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors cursor-pointer text-white",
                   isActive
-                    ? "bg-primary text-white"
-                    : "text-sidebar/80 hover:bg-sidebar/20 hover:text-white"
+                    ? "bg-primary"
+                    : "hover:bg-sidebar/20"
                 )}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
@@ -89,7 +82,7 @@ export function AppSidebar() {
         {profile && !collapsed && (
           <div className="mb-3 px-3 py-2 bg-sidebar/20 rounded-lg">
             <p className="text-sm font-medium text-white">{profile.nome}</p>
-            <p className="text-xs text-sidebar/60 capitalize">{profile.perfil}</p>
+            <p className="text-xs text-white/60 capitalize">{profile.perfil}</p>
           </div>
         )}
         <Button
