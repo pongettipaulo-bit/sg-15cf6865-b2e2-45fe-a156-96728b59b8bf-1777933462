@@ -1,6 +1,6 @@
 ---
 title: Fila de eventos (kanban)
-status: in_progress
+status: done
 priority: high
 type: feature
 tags: [kanban, eventos, realtime]
