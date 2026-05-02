@@ -1,9 +1,9 @@
 ---
 title: Autenticação e controle de acesso
-status: todo
+status: in_progress
 priority: urgent
 type: feature
-tags: [auth, permissions]
+tags: [auth, rbac, login]
 created_by: agent
 created_at: 2026-05-02T21:52:00Z
 position: 1
