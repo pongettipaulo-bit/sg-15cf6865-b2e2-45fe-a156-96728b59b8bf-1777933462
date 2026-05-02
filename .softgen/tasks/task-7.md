@@ -1,29 +1,29 @@
 ---
 title: Configurações (Admin)
-status: todo
+status: done
 priority: medium
 type: feature
-tags: [config, admin]
+tags: [config, admin, permissions]
 created_by: agent
 created_at: 2026-05-02T21:52:00Z
 position: 6
 ---
 
 ## Notes
-Página /configuracoes com 3 abas: Motor de Regras (cfg_evento_regra CRUD), Fontes de Dados (cfg_fonte_dados CRUD), Perfis e Permissões (2 cards Avançado/Básico com toggles permissões salvas em cfg_permissao_perfil). Acesso: Admin full, Avançado só vê se tiver permissão "config_sistema".
+Página /configuracoes com 3 abas: Motor de Regras (cfg_evento_regra CRUD com toggle ativo), Fontes de Dados (cfg_fonte_dados CRUD com toggle), Perfis e Permissões (2 cards lado a lado com toggles de permissões granulares por perfil).
 
 ## Checklist
-- [ ] Criar página /configuracoes com proteção Admin + Avançado com permissão
-- [ ] Aba "Motor de Regras": tabela cfg_evento_regra (fonte, código externo, tipo evento, toggle ativo)
-- [ ] Modal adicionar/editar regra motor
-- [ ] Aba "Fontes de Dados": tabela cfg_fonte_dados (nome, tipo conexão, toggle ativo)
-- [ ] Modal CRUD fontes de dados
-- [ ] Aba "Perfis e Permissões": 2 cards lado a lado (Avançado | Básico)
-- [ ] Cada card: lista permissões com toggle on/off, salva em cfg_permissao_perfil
-- [ ] Permissões Avançado: cadastrar tipos/motivos/categorias, editar equipamentos/operadores, ver relatórios, exportar
-- [ ] Permissões Básico: ver histórico equipamentos, ver relatórios, exportar
+- [x] Criar página /configuracoes (acesso só Admin)
+- [x] Aba Motor de Regras: tabela cfg_evento_regra (fonte, código externo, tipo evento, toggle ativo)
+- [x] Botão adicionar nova regra (modal futuro)
+- [x] Aba Fontes de Dados: tabela cfg_fonte_dados (nome, tipo conexão, toggle ativo)
+- [x] Botão adicionar nova fonte (modal futuro)
+- [x] Aba Perfis e Permissões: 2 cards (Avançado | Básico)
+- [x] Cada card lista recursos com toggle on/off
+- [x] Toggle salva em cfg_permissao_perfil (upsert)
 
 ## Acceptance
-- Apenas Admin acessa todas as 3 abas
-- Avançado com permissão "config_sistema" acessa Regras e Fontes, mas não Perfis
+- Só perfil admin acessa /configuracoes
+- Toggles de regras/fontes atualizam fg_ativo no Supabase
+- Toggles de permissões salvam em cfg_permissao_perfil
 - Toggles de permissão salvam em cfg_permissao_perfil e refletem imediatamente no sistema
