@@ -1,9 +1,9 @@
 ---
 title: Fila de eventos (kanban)
-status: todo
+status: in_progress
 priority: high
 type: feature
-tags: [kanban, events, realtime]
+tags: [kanban, eventos, realtime]
 created_by: agent
 created_at: 2026-05-02T21:52:00Z
 position: 3

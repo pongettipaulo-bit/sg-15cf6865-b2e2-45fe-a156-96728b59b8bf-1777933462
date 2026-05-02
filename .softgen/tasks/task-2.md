@@ -1,6 +1,6 @@
 ---
 title: Autenticação e controle de acesso
-status: in_progress
+status: done
 priority: urgent
 type: feature
 tags: [auth, rbac, login]
