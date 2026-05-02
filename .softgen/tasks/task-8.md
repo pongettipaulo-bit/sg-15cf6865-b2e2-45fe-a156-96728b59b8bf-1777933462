@@ -14,19 +14,19 @@ Páginas /cadastros/* com estrutura padrão: tabela busca/filtros, botão "+Novo
 
 ## Checklist
 - [x] Criar página índice /cadastros com grid de cards navegáveis
-- [ ] /cadastros/tipos-evento (dim_tipo_evento)
-- [ ] /cadastros/motivos (dim_motivo_evento)
-- [ ] /cadastros/categorias (dim_categoria_evento)
-- [ ] /cadastros/subcategorias (dim_subcategoria_evento)
-- [ ] /cadastros/escalation (dim_escalation_list)
+- [x] /cadastros/tipos-evento (dim_tipo_evento)
+- [x] /cadastros/motivos (dim_motivo_evento)
+- [x] /cadastros/categorias (dim_categoria_evento)
+- [x] /cadastros/subcategorias (dim_subcategoria_evento)
+- [x] /cadastros/escalation (dim_escalation_list)
 - [ ] /cadastros/equipamentos (dim_equipamento)
 - [ ] /cadastros/grupos-equipamento (dim_grupo_equipamento)
 - [ ] /cadastros/tipos-equipamento (dim_tipo_equipamento)
 - [ ] /cadastros/operadores (dim_operador)
 - [ ] /cadastros/operacoes (dim_operacao)
 - [ ] /cadastros/unidades (dim_unidade)
-- [ ] Estrutura consistente: tabela + busca + modal criar/editar + toggle ativo
-- [ ] Controle de acesso: Admin total, Avançado só com permissão
+- [x] Estrutura consistente: tabela + busca + modal criar/editar + toggle ativo
+- [x] Controle de acesso: Admin total, Avançado só com permissão
 
 ## Acceptance
 - Cada cadastro exibe tabela com dados do Supabase e busca funcional
