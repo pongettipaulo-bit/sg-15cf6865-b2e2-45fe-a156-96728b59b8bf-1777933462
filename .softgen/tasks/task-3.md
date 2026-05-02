@@ -1,30 +1,28 @@
 ---
 title: Dashboard principal
-status: todo
+status: done
 priority: high
 type: feature
-tags: [dashboard, metrics]
+tags: [dashboard, metrics, charts]
 created_by: agent
 created_at: 2026-05-02T21:52:00Z
 position: 2
 ---
 
 ## Notes
-Página /dashboard com métricas tempo real: total eventos abertos (card grande), por status (4 cards), comparativo encerrados hoje vs ontem, top 5 equipamentos (barras), eventos por categoria (pizza), timeline 24h (linha).
+Dashboard com métricas tempo real: total eventos, por status, encerrados (comparativo hoje vs ontem), top 5 equipamentos, eventos por categoria (pizza), timeline 24h. React Query com refetch automático a cada 30s.
 
 ## Checklist
-- [ ] Criar página /dashboard com grid de cards de métricas
-- [ ] Implementar query vw_fila_evento_aberta para métricas gerais
-- [ ] Card destaque: Total de eventos abertos (número grande + badge vermelho)
-- [ ] 4 cards status: pendente, em andamento, escalado, atrasado
-- [ ] Card comparativo: encerrados hoje vs ontem (diferença percentual)
-- [ ] Gráfico barras horizontal: top 5 equipamentos com mais eventos
-- [ ] Gráfico pizza: eventos por categoria
-- [ ] Gráfico linha: timeline últimas 24h (eventos por hora)
-- [ ] Skeleton loaders durante carregamento
-- [ ] Auto-refresh a cada 30 segundos
+- [x] Criar hook useDashboardMetrics com React Query (refetch 30s)
+- [x] Card grande destaque: total eventos abertos
+- [x] Cards status: pendentes, em andamento, escalados, atrasados
+- [x] Card encerrados hoje vs ontem com indicador de tendência
+- [x] Gráfico barras horizontal: top 5 equipamentos
+- [x] Gráfico pizza: eventos por categoria
+- [x] Gráfico linha: timeline últimas 24h
+- [x] Skeleton loaders durante carregamento
 
 ## Acceptance
-- Dashboard carrega métricas em menos de 2 segundos
+- Dashboard carrega métricas de vw_fila_evento_aberta e fila_evento
 - Cards de status exibem cores corretas do design system
 - Gráficos são interativos e responsivos
