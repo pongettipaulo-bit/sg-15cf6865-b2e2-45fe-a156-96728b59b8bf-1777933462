@@ -11,6 +11,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, Plus, Download, FileText, Search, Filter } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ModalAssumir } from "@/components/eventos/ModalAssumir";
+import { ModalEscalar } from "@/components/eventos/ModalEscalar";
+import { ModalEncerrar } from "@/components/eventos/ModalEncerrar";
+import { ModalNovoPrazo } from "@/components/eventos/ModalNovoPrazo";
 
 type Evento = {
   id: string;
@@ -28,6 +32,7 @@ type Evento = {
   nm_operacao: string;
   dt_inicio: string | null;
   dt_fim: string | null;
+  id_tipo_evento?: string;
 };
 
 const CRITICIDADE_COLORS = {
@@ -49,6 +54,12 @@ export default function Eventos() {
   const [searchTerm, setSearchTerm] = useState("");
   const [criticidadeFilter, setCriticidadeFilter] = useState<string>("todas");
   const [categoriaFilter, setCategoriaFilter] = useState<string>("todas");
+
+  // Modal states
+  const [modalAssumir, setModalAssumir] = useState<Evento | null>(null);
+  const [modalEscalar, setModalEscalar] = useState<Evento | null>(null);
+  const [modalEncerrar, setModalEncerrar] = useState<Evento | null>(null);
+  const [modalNovoPrazo, setModalNovoPrazo] = useState<Evento | null>(null);
 
   const { data: eventos, isLoading } = useQuery({
     queryKey: ["eventos"],
@@ -339,16 +350,29 @@ export default function Eventos() {
 
                           {/* Botões de ação */}
                           {evento.status === "pendente" && (
-                            <Button size="sm" className="w-full">
+                            <Button 
+                              size="sm" 
+                              className="w-full"
+                              onClick={() => setModalAssumir(evento)}
+                            >
                               Assumir
                             </Button>
                           )}
                           {evento.status === "em_andamento" && (
                             <div className="flex gap-2">
-                              <Button size="sm" variant="outline" className="flex-1">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="flex-1"
+                                onClick={() => setModalEscalar(evento)}
+                              >
                                 Escalar
                               </Button>
-                              <Button size="sm" className="flex-1">
+                              <Button 
+                                size="sm" 
+                                className="flex-1"
+                                onClick={() => setModalEncerrar(evento)}
+                              >
                                 Encerrar
                               </Button>
                             </div>
@@ -363,13 +387,22 @@ export default function Eventos() {
                                   })}
                                 </p>
                               )}
-                              <Button size="sm" className="w-full">
+                              <Button 
+                                size="sm" 
+                                className="w-full"
+                                onClick={() => setModalEncerrar(evento)}
+                              >
                                 Encerrar
                               </Button>
                             </div>
                           )}
                           {evento.status === "atrasado" && (
-                            <Button size="sm" variant="destructive" className="w-full">
+                            <Button 
+                              size="sm" 
+                              variant="destructive" 
+                              className="w-full"
+                              onClick={() => setModalNovoPrazo(evento)}
+                            >
                               Novo Prazo
                             </Button>
                           )}
@@ -413,6 +446,36 @@ export default function Eventos() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Modals */}
+      {modalAssumir && (
+        <ModalAssumir
+          evento={modalAssumir}
+          open={!!modalAssumir}
+          onClose={() => setModalAssumir(null)}
+        />
+      )}
+      {modalEscalar && (
+        <ModalEscalar
+          evento={modalEscalar}
+          open={!!modalEscalar}
+          onClose={() => setModalEscalar(null)}
+        />
+      )}
+      {modalEncerrar && (
+        <ModalEncerrar
+          evento={modalEncerrar}
+          open={!!modalEncerrar}
+          onClose={() => setModalEncerrar(null)}
+        />
+      )}
+      {modalNovoPrazo && (
+        <ModalNovoPrazo
+          evento={modalNovoPrazo}
+          open={!!modalNovoPrazo}
+          onClose={() => setModalNovoPrazo(null)}
+        />
+      )}
     </div>
   );
 }
