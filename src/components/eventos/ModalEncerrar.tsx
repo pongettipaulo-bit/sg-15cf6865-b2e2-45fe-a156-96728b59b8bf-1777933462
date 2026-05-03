@@ -27,20 +27,14 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
   const [observacaoFim, setObservacaoFim] = useState("");
 
-  const encerrarEvento = useMutation({
-    mutationFn: async () => {
+  const updateEvento = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
       if (!evento || !profile) return;
 
       const { error } = await supabase
         .from("fila_evento")
-        .update({
-          status: "encerrado",
-          dt_fim: new Date().toISOString(),
-          observacao_fim: observacaoFim || null,
-          id_usuario_fim: profile.id,
-          tp_encerramento: "tratativa",
-        })
-        .eq("id", evento.id);
+        .update(data)
+        .eq("id", id);
 
       if (error) throw error;
     },
@@ -57,7 +51,16 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    encerrarEvento.mutate();
+    updateEvento.mutateAsync({
+      id: evento.id,
+      data: {
+        status: "encerrado",
+        tp_encerramento: "tratativa",
+        dt_fim: new Date().toISOString(),
+        observacao_fim: observacaoFim || null,
+        id_usuario_fim: profile.id,
+      },
+    });
   };
 
   return (
@@ -88,8 +91,8 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={encerrarEvento.isPending}>
-              {encerrarEvento.isPending ? "Encerrando..." : "Encerrar"}
+            <Button type="submit" disabled={updateEvento.isPending}>
+              {updateEvento.isPending ? "Encerrando..." : "Encerrar"}
             </Button>
           </DialogFooter>
         </form>

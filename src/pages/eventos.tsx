@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Clock, AlertTriangle } from "lucide-react";
 import { ModalAssumir } from "@/components/eventos/ModalAssumir";
@@ -36,6 +38,7 @@ type Evento = {
   observacao_fim?: string;
   id_motivo?: number;
   nm_motivo?: string;
+  tp_encerramento?: string;
 };
 
 export default function Eventos() {
@@ -44,6 +47,7 @@ export default function Eventos() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [mostrarCancelados, setMostrarCancelados] = useState(false);
   const [modalAssumir, setModalAssumir] = useState(false);
   const [modalEscalar, setModalEscalar] = useState(false);
   const [modalEncerrar, setModalEncerrar] = useState(false);
@@ -64,16 +68,13 @@ export default function Eventos() {
           categoria:dim_tipo_evento(id_categoria),
           subcategoria:dim_tipo_evento(id_subcategoria)
         `)
-        .in("status", ["pendente", "em_andamento", "escalado", "atrasado", "encerrado"])
+        .in("status", ["pendente", "em_andamento", "escalado", "atrasado", "encerrado", "cancelado"])
         .order("criado_em", { ascending: false });
 
       if (error) {
         console.error("Erro ao carregar eventos:", error);
         throw error;
       }
-      
-      console.log("Eventos carregados:", data?.length, "eventos");
-      console.log("Primeiro evento completo:", data?.[0]);
       
       return data.map((e: any) => ({
         id: e.id,
@@ -96,74 +97,11 @@ export default function Eventos() {
         observacao_fim: e.observacao_fim,
         id_motivo: e.id_motivo,
         nm_motivo: e.motivo?.nm_motivo,
+        tp_encerramento: e.tp_encerramento,
       })) as Evento[];
     },
     refetchInterval: 30000,
   });
-
-  const filteredEventos = eventos?.filter((evento) => {
-    const matchesSearch = searchTerm === "" || 
-      evento.nm_tipo_evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      evento.nm_equipamento.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "todos" || evento.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  }) || [];
-
-  const eventosPorStatus = {
-    total: eventos?.length || 0,
-    pendente: eventos?.filter((e) => e.status === "pendente").length || 0,
-    em_andamento: eventos?.filter((e) => e.status === "em_andamento").length || 0,
-    escalado: eventos?.filter((e) => e.status === "escalado").length || 0,
-    atrasado: eventos?.filter((e) => e.status === "atrasado").length || 0,
-    encerrado: eventos?.filter((e) => {
-      if (e.status !== "encerrado") return false;
-      if (!e.dt_fim) return false;
-      const hoje = new Date().toISOString().split("T")[0];
-      const dataFim = new Date(e.dt_fim).toISOString().split("T")[0];
-      return dataFim === hoje;
-    }).length || 0,
-  };
-
-  const getCriticidadeColor = (criticidade: string) => {
-    switch (criticidade) {
-      case "critica": return "bg-destructive-bg text-destructive";
-      case "alta": return "bg-warning-bg text-warning";
-      case "media": return "bg-primary-light text-primary-dark";
-      case "baixa": return "bg-success-bg text-success";
-      default: return "bg-muted text-muted-foreground";
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pendente": return "bg-blue-100 text-blue-800";
-      case "em_andamento": return "bg-yellow-100 text-yellow-800";
-      case "escalado": return "bg-orange-100 text-orange-800";
-      case "atrasado": return "bg-red-100 text-red-800";
-      case "encerrado": return "bg-green-100 text-green-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const abrirModalAssumir = (evento: Evento) => {
-    setEventoSelecionado(evento);
-    setModalAssumir(true);
-  };
-
-  const abrirModalEscalar = (evento: Evento) => {
-    setEventoSelecionado(evento);
-    setModalEscalar(true);
-  };
-
-  const abrirModalEncerrar = (evento: Evento) => {
-    setEventoSelecionado(evento);
-    setModalEncerrar(true);
-  };
-
-  const abrirModalNovoPrazo = (evento: Evento) => {
-    setEventoSelecionado(evento);
-    setModalNovoPrazo(true);
-  };
 
   const encerrarSemTratativa = useMutation({
     mutationFn: async (evento: Evento) => {
@@ -213,49 +151,106 @@ export default function Eventos() {
     },
   });
 
-  const EventoCard = ({ evento }: { evento: Evento }) => (
-    <Card className={`${evento.prazo_vencido ? "border-l-4 border-l-red-600" : ""}`}>
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <Badge className={getCriticidadeColor(evento.criticidade)}>
-                {evento.criticidade}
-              </Badge>
-              <Badge variant="outline" className={getStatusColor(evento.status)}>
-                {evento.status.replace("_", " ")}
-              </Badge>
-            </div>
-            <h4 className="font-semibold text-sm truncate">{evento.nm_tipo_evento}</h4>
-            <p className="text-xs text-muted-foreground truncate">
-              {evento.nm_equipamento} {evento.nm_operacao ? `— ${evento.nm_operacao}` : ""}
+  const eventosPorStatus = {
+    total: eventos?.length || 0,
+    pendente: eventos?.filter((e) => e.status === "pendente").length || 0,
+    em_andamento: eventos?.filter((e) => e.status === "em_andamento").length || 0,
+    escalado: eventos?.filter((e) => e.status === "escalado").length || 0,
+    atrasado: eventos?.filter((e) => e.status === "atrasado").length || 0,
+    encerrado: eventos?.filter((e) => {
+      if (e.status !== "encerrado") return false;
+      if (!e.dt_fim) return false;
+      const hoje = new Date().toISOString().split("T")[0];
+      const dataFim = new Date(e.dt_fim).toISOString().split("T")[0];
+      return dataFim === hoje;
+    }).length || 0,
+    cancelado: eventos?.filter((e) => e.status === "cancelado").length || 0,
+  };
+
+  const filteredEventos = eventos?.filter((e) => {
+    const matchesSearch = searchTerm === "" || 
+      e.nm_tipo_evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      e.nm_equipamento.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === "todos" || e.status === statusFilter;
+    
+    const showCancelled = mostrarCancelados || e.status !== "cancelado";
+    
+    return matchesSearch && matchesStatus && showCancelled;
+  }) ?? [];
+
+  const abrirModalAssumir = (evento: Evento) => {
+    setEventoSelecionado(evento);
+    setModalAssumir(true);
+  };
+
+  const abrirModalEscalar = (evento: Evento) => {
+    setEventoSelecionado(evento);
+    setModalEscalar(true);
+  };
+
+  const abrirModalEncerrar = (evento: Evento) => {
+    setEventoSelecionado(evento);
+    setModalEncerrar(true);
+  };
+
+  const abrirModalNovoPrazo = (evento: Evento) => {
+    setEventoSelecionado(evento);
+    setModalNovoPrazo(true);
+  };
+
+  const getCriticalityColor = (criticidade: string) => {
+    switch (criticidade) {
+      case "critica": return "bg-destructive-bg text-destructive";
+      case "alta": return "bg-warning-bg text-[#633806]";
+      case "media": return "bg-primary-light text-primary-dark";
+      case "baixa": return "bg-success-bg text-[#27500A]";
+      default: return "bg-muted text-muted-foreground";
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "pendente": return "bg-muted text-muted-foreground";
+      case "em_andamento": return "bg-primary text-primary-foreground";
+      case "escalado": return "bg-purple-600 text-white";
+      case "atrasado": return "bg-destructive text-destructive-foreground";
+      case "encerrado": return "bg-success text-white";
+      case "cancelado": return "bg-gray-400 text-gray-700";
+      default: return "bg-muted text-muted-foreground";
+    }
+  };
+
+  const EventoCard = ({ evento }: { evento: Evento }) => {
+    const isCancelado = evento.status === "cancelado";
+    
+    return (
+      <Card className={`${evento.status === "atrasado" ? "border-l-4 border-l-destructive" : ""} ${isCancelado ? "opacity-60" : ""}`}>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            <Badge className={getCriticalityColor(evento.criticidade)}>
+              {evento.criticidade}
+            </Badge>
+            <Badge variant="outline" className={getStatusColor(evento.status)}>
+              {evento.status}
+            </Badge>
+          </div>
+          
+          <h4 className={`font-semibold text-sm ${isCancelado ? "line-through" : ""}`}>
+            {evento.nm_tipo_evento}
+          </h4>
+          
+          <div className={`text-xs space-y-1 ${isCancelado ? "line-through" : ""}`}>
+            <p className="text-muted-foreground">
+              {evento.nm_equipamento}
+              {evento.nm_operacao && ` — ${evento.nm_operacao}`}
             </p>
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Clock className="w-3 h-3" />
+              <span>há {Math.floor((Date.now() - new Date(evento.criado_em).getTime()) / 60000)} min</span>
+            </div>
           </div>
-          {evento.prazo_vencido && (
-            <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
-          )}
-        </div>
 
-        {evento.dt_prazo && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Clock className="w-3 h-3" />
-            <span>Prazo: {new Date(evento.dt_prazo).toLocaleString("pt-BR")}</span>
-          </div>
-        )}
-
-        {evento.observacao_inicio && (
-          <p className="text-xs bg-muted p-2 rounded">
-            <strong>Início:</strong> {evento.observacao_inicio}
-          </p>
-        )}
-
-        {evento.observacao_fim && (
-          <p className="text-xs bg-muted p-2 rounded">
-            <strong>Fim:</strong> {evento.observacao_fim}
-          </p>
-        )}
-
-        <div className="flex flex-wrap gap-2 pt-2">
           {evento.status === "pendente" && (
             <div className="flex gap-2">
               <Button
@@ -285,7 +280,7 @@ export default function Eventos() {
           )}
 
           {evento.status === "em_andamento" && (
-            <>
+            <div className="flex gap-2">
               <Button
                 size="sm"
                 variant="outline"
@@ -295,50 +290,37 @@ export default function Eventos() {
               </Button>
               <Button
                 size="sm"
-                variant="outline"
-                onClick={() => abrirModalNovoPrazo(evento)}
-              >
-                Novo Prazo
-              </Button>
-              <Button
-                size="sm"
                 onClick={() => abrirModalEncerrar(evento)}
               >
                 Encerrar
               </Button>
-            </>
+            </div>
           )}
 
           {evento.status === "escalado" && (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => abrirModalNovoPrazo(evento)}
-              >
-                Novo Prazo
-              </Button>
+            <div className="space-y-2">
+              {evento.dt_prazo && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <AlertTriangle className="w-3 h-3" />
+                  <span>Prazo: {new Date(evento.dt_prazo).toLocaleString("pt-BR")}</span>
+                </div>
+              )}
               <Button
                 size="sm"
                 onClick={() => abrirModalEncerrar(evento)}
+                className="w-full"
               >
                 Encerrar
               </Button>
-            </>
+            </div>
           )}
 
           {evento.status === "atrasado" && (
-            <>
+            <div className="flex gap-2">
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => abrirModalEscalar(evento)}
-              >
-                Escalar
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
+                className="text-destructive"
                 onClick={() => abrirModalNovoPrazo(evento)}
               >
                 Novo Prazo
@@ -349,70 +331,30 @@ export default function Eventos() {
               >
                 Encerrar
               </Button>
-            </>
+            </div>
           )}
-        </div>
-      </CardContent>
-    </Card>
-  );
 
-  if (!profile) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-muted-foreground">Carregando...</p>
-      </div>
+          {isCancelado && evento.observacao_fim && (
+            <p className="text-xs text-muted-foreground italic">
+              {evento.observacao_fim}
+            </p>
+          )}
+        </CardContent>
+      </Card>
     );
-  }
+  };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold mb-2">Fila de Eventos</h1>
-        <p className="text-muted-foreground">
-          Gestão de eventos operacionais em tempo real
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold mb-2">Fila de Eventos</h1>
+          <p className="text-muted-foreground">Gestão de eventos operacionais</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Total</p>
-            <p className="text-2xl font-bold">{eventosPorStatus.total}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Pendente</p>
-            <p className="text-2xl font-bold">{eventosPorStatus.pendente}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Em Andamento</p>
-            <p className="text-2xl font-bold">{eventosPorStatus.em_andamento}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Escalado</p>
-            <p className="text-2xl font-bold">{eventosPorStatus.escalado}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Atrasado</p>
-            <p className="text-2xl font-bold">{eventosPorStatus.atrasado}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Encerrado Hoje</p>
-            <p className="text-2xl font-bold">{eventosPorStatus.encerrado}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="flex gap-4">
+      {/* Filtros */}
+      <div className="flex gap-4 items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -424,114 +366,174 @@ export default function Eventos() {
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Status" />
+            <SelectValue placeholder="Filtrar status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todos">Todos</SelectItem>
+            <SelectItem value="todos">Todos os status</SelectItem>
             <SelectItem value="pendente">Pendente</SelectItem>
-            <SelectItem value="em_andamento">Em Andamento</SelectItem>
+            <SelectItem value="em_andamento">Em andamento</SelectItem>
             <SelectItem value="escalado">Escalado</SelectItem>
             <SelectItem value="atrasado">Atrasado</SelectItem>
             <SelectItem value="encerrado">Encerrado</SelectItem>
+            <SelectItem value="cancelado">Cancelado</SelectItem>
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-2">
+          <Switch
+            id="mostrar-cancelados"
+            checked={mostrarCancelados}
+            onCheckedChange={setMostrarCancelados}
+          />
+          <Label htmlFor="mostrar-cancelados" className="cursor-pointer">
+            Mostrar cancelados
+          </Label>
+        </div>
       </div>
 
-      {isLoading ? (
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-32" />
-          ))}
-        </div>
-      ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {/* Coluna Pendente */}
-          <div className="flex-1 min-w-[280px]">
-            <div className="bg-muted/50 p-3 rounded-t-lg border-b-2 border-blue-600">
-              <h3 className="font-semibold text-sm">
-                Pendente ({eventosPorStatus.pendente})
-              </h3>
-            </div>
-            <div className="space-y-3 p-3 min-h-[200px]">
-              {filteredEventos
+      {/* Cards de métricas */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Total</p>
+            <p className="text-2xl font-bold">{eventosPorStatus.total}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Pendentes</p>
+            <p className="text-2xl font-bold">{eventosPorStatus.pendente}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Em andamento</p>
+            <p className="text-2xl font-bold">{eventosPorStatus.em_andamento}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Escalados</p>
+            <p className="text-2xl font-bold">{eventosPorStatus.escalado}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Atrasados</p>
+            <p className="text-2xl font-bold text-destructive">{eventosPorStatus.atrasado}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Encerrados Hoje</p>
+            <p className="text-2xl font-bold text-success">{eventosPorStatus.encerrado}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Cancelados</p>
+            <p className="text-2xl font-bold text-gray-500">{eventosPorStatus.cancelado}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Kanban */}
+      <div className="flex gap-4 overflow-x-auto pb-4">
+        {/* Coluna Pendente */}
+        <div className="flex-1 min-w-[280px]">
+          <div className="bg-muted/50 p-3 rounded-t-lg border-b-2 border-gray-400">
+            <h3 className="font-semibold text-sm">
+              Pendente ({eventosPorStatus.pendente})
+            </h3>
+          </div>
+          <div className="space-y-3 p-3 min-h-[200px]">
+            {isLoading ? (
+              [1, 2, 3].map((i) => <Skeleton key={i} className="h-32" />)
+            ) : (
+              filteredEventos
                 .filter((e) => e.status === "pendente")
-                .map((evento) => (
-                  <EventoCard key={evento.id} evento={evento} />
-                ))}
-            </div>
-          </div>
-
-          {/* Coluna Em Andamento */}
-          <div className="flex-1 min-w-[280px]">
-            <div className="bg-muted/50 p-3 rounded-t-lg border-b-2 border-yellow-600">
-              <h3 className="font-semibold text-sm">
-                Em Andamento ({eventosPorStatus.em_andamento})
-              </h3>
-            </div>
-            <div className="space-y-3 p-3 min-h-[200px]">
-              {filteredEventos
-                .filter((e) => e.status === "em_andamento")
-                .map((evento) => (
-                  <EventoCard key={evento.id} evento={evento} />
-                ))}
-            </div>
-          </div>
-
-          {/* Coluna Escalado */}
-          <div className="flex-1 min-w-[280px]">
-            <div className="bg-muted/50 p-3 rounded-t-lg border-b-2 border-orange-600">
-              <h3 className="font-semibold text-sm">
-                Escalado ({eventosPorStatus.escalado})
-              </h3>
-            </div>
-            <div className="space-y-3 p-3 min-h-[200px]">
-              {filteredEventos
-                .filter((e) => e.status === "escalado")
-                .map((evento) => (
-                  <EventoCard key={evento.id} evento={evento} />
-                ))}
-            </div>
-          </div>
-
-          {/* Coluna Atrasado */}
-          <div className="flex-1 min-w-[280px]">
-            <div className="bg-muted/50 p-3 rounded-t-lg border-b-2 border-red-600">
-              <h3 className="font-semibold text-sm">
-                Atrasado ({eventosPorStatus.atrasado})
-              </h3>
-            </div>
-            <div className="space-y-3 p-3 min-h-[200px]">
-              {filteredEventos
-                .filter((e) => e.status === "atrasado")
-                .map((evento) => (
-                  <EventoCard key={evento.id} evento={evento} />
-                ))}
-            </div>
-          </div>
-
-          {/* Coluna Encerrado */}
-          <div className="flex-1 min-w-[280px]">
-            <div className="bg-muted/50 p-3 rounded-t-lg border-b-2 border-green-600">
-              <h3 className="font-semibold text-sm">
-                Encerrado Hoje ({eventosPorStatus.encerrado})
-              </h3>
-            </div>
-            <div className="space-y-3 p-3 min-h-[200px]">
-              {filteredEventos
-                .filter((e) => {
-                  if (e.status !== "encerrado") return false;
-                  if (!e.dt_fim) return false;
-                  const hoje = new Date().toISOString().split("T")[0];
-                  const dataFim = new Date(e.dt_fim).toISOString().split("T")[0];
-                  return dataFim === hoje;
-                })
-                .map((evento) => (
-                  <EventoCard key={evento.id} evento={evento} />
-                ))}
-            </div>
+                .map((evento) => <EventoCard key={evento.id} evento={evento} />)
+            )}
           </div>
         </div>
-      )}
+
+        {/* Coluna Em Andamento */}
+        <div className="flex-1 min-w-[280px]">
+          <div className="bg-muted/50 p-3 rounded-t-lg border-b-2 border-primary">
+            <h3 className="font-semibold text-sm">
+              Em Andamento ({eventosPorStatus.em_andamento})
+            </h3>
+          </div>
+          <div className="space-y-3 p-3 min-h-[200px]">
+            {filteredEventos
+              .filter((e) => e.status === "em_andamento")
+              .map((evento) => <EventoCard key={evento.id} evento={evento} />)}
+          </div>
+        </div>
+
+        {/* Coluna Escalado */}
+        <div className="flex-1 min-w-[280px]">
+          <div className="bg-muted/50 p-3 rounded-t-lg border-b-2 border-purple-600">
+            <h3 className="font-semibold text-sm">
+              Escalado ({eventosPorStatus.escalado})
+            </h3>
+          </div>
+          <div className="space-y-3 p-3 min-h-[200px]">
+            {filteredEventos
+              .filter((e) => e.status === "escalado")
+              .map((evento) => <EventoCard key={evento.id} evento={evento} />)}
+          </div>
+        </div>
+
+        {/* Coluna Atrasado */}
+        <div className="flex-1 min-w-[280px]">
+          <div className="bg-muted/50 p-3 rounded-t-lg border-b-2 border-destructive">
+            <h3 className="font-semibold text-sm">
+              Atrasado ({eventosPorStatus.atrasado})
+            </h3>
+          </div>
+          <div className="space-y-3 p-3 min-h-[200px]">
+            {filteredEventos
+              .filter((e) => e.status === "atrasado")
+              .map((evento) => <EventoCard key={evento.id} evento={evento} />)}
+          </div>
+        </div>
+
+        {/* Coluna Encerrado */}
+        <div className="flex-1 min-w-[280px]">
+          <div className="bg-muted/50 p-3 rounded-t-lg border-b-2 border-green-600">
+            <h3 className="font-semibold text-sm">
+              Encerrado Hoje ({eventosPorStatus.encerrado})
+            </h3>
+          </div>
+          <div className="space-y-3 p-3 min-h-[200px]">
+            {filteredEventos
+              .filter((e) => {
+                if (e.status !== "encerrado") return false;
+                if (!e.dt_fim) return false;
+                const hoje = new Date().toISOString().split("T")[0];
+                const dataFim = new Date(e.dt_fim).toISOString().split("T")[0];
+                return dataFim === hoje;
+              })
+              .map((evento) => <EventoCard key={evento.id} evento={evento} />)}
+          </div>
+        </div>
+
+        {/* Coluna Cancelado (só aparece se toggle ativo) */}
+        {mostrarCancelados && (
+          <div className="flex-1 min-w-[280px]">
+            <div className="bg-muted/50 p-3 rounded-t-lg border-b-2 border-gray-400">
+              <h3 className="font-semibold text-sm">
+                Cancelado ({eventosPorStatus.cancelado})
+              </h3>
+            </div>
+            <div className="space-y-3 p-3 min-h-[200px]">
+              {filteredEventos
+                .filter((e) => e.status === "cancelado")
+                .map((evento) => <EventoCard key={evento.id} evento={evento} />)}
+            </div>
+          </div>
+        )}
+      </div>
 
       <ModalAssumir
         evento={eventoSelecionado}
