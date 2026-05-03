@@ -302,46 +302,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Timeline 24h */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <Clock className="w-5 h-5" />
-            Eventos nas Últimas 24 Horas
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {metricas.timeline24h.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={metricas.timeline24h}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="hora" />
-                <YAxis />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: "hsl(var(--background))", 
-                    border: "1px solid hsl(var(--border))" 
-                  }}
-                />
-                <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="total" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={2}
-                  dot={{ fill: "hsl(var(--primary))" }}
-                  name="Eventos criados"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-              Nenhum evento nas últimas 24 horas
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
