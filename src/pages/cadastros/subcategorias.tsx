@@ -9,14 +9,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Search, Plus, Edit, AlertCircle } from "lucide-react";
+import { Search, Plus, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type Subcategoria = {
   id: number;
   nm_subcategoria: string;
   id_categoria: number;
-  fg_ativo: boolean;
+  descricao?: string;
+  ativo: boolean;
   categoria?: { nm_categoria: string };
 };
 
@@ -35,6 +36,7 @@ export default function Subcategorias() {
   const [formData, setFormData] = useState({
     nm_subcategoria: "",
     id_categoria: "",
+    descricao: "",
   });
 
   const { data: subcategorias, isLoading } = useQuery({
@@ -55,7 +57,7 @@ export default function Subcategorias() {
       const { data, error } = await supabase
         .from("dim_categoria_evento")
         .select("*")
-        .eq("fg_ativo", true)
+        .eq("ativo", true)
         .order("nm_categoria");
       if (error) throw error;
       return data as Categoria[];
@@ -91,8 +93,8 @@ export default function Subcategorias() {
   });
 
   const toggleMutation = useMutation({
-    mutationFn: async ({ id, fg_ativo }: { id: number; fg_ativo: boolean }) => {
-      const { error } = await supabase.from("dim_subcategoria_evento").update({ fg_ativo }).eq("id", id);
+    mutationFn: async ({ id, ativo }: { id: number; ativo: boolean }) => {
+      const { error } = await supabase.from("dim_subcategoria_evento").update({ ativo }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -109,7 +111,7 @@ export default function Subcategorias() {
   }) ?? [];
 
   const resetForm = () => {
-    setFormData({ nm_subcategoria: "", id_categoria: "" });
+    setFormData({ nm_subcategoria: "", id_categoria: "", descricao: "" });
     setEditingSubcategoria(null);
   };
 
@@ -123,6 +125,7 @@ export default function Subcategorias() {
     setFormData({
       nm_subcategoria: subcategoria.nm_subcategoria,
       id_categoria: String(subcategoria.id_categoria),
+      descricao: subcategoria.descricao || "",
     });
     setModalOpen(true);
   };
@@ -132,7 +135,8 @@ export default function Subcategorias() {
     const payload = {
       nm_subcategoria: formData.nm_subcategoria,
       id_categoria: Number(formData.id_categoria),
-      fg_ativo: true,
+      descricao: formData.descricao || null,
+      ativo: true,
     };
 
     if (editingSubcategoria) {
@@ -142,7 +146,6 @@ export default function Subcategorias() {
     }
   };
 
-  // Admin has unrestricted access
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -180,6 +183,7 @@ export default function Subcategorias() {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Categoria</TableHead>
+              <TableHead>Descrição</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-20">Ações</TableHead>
             </TableRow>
@@ -187,13 +191,13 @@ export default function Subcategorias() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                   Carregando...
                 </TableCell>
               </TableRow>
             ) : filteredSubcategorias.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                   Nenhuma subcategoria encontrada
                 </TableCell>
               </TableRow>
@@ -202,11 +206,12 @@ export default function Subcategorias() {
                 <TableRow key={subcategoria.id}>
                   <TableCell className="font-medium">{subcategoria.nm_subcategoria}</TableCell>
                   <TableCell>{subcategoria.categoria?.nm_categoria}</TableCell>
+                  <TableCell>{subcategoria.descricao || "—"}</TableCell>
                   <TableCell>
                     <Switch
-                      checked={subcategoria.fg_ativo}
+                      checked={subcategoria.ativo}
                       onCheckedChange={(checked) =>
-                        toggleMutation.mutate({ id: subcategoria.id, fg_ativo: checked })
+                        toggleMutation.mutate({ id: subcategoria.id, ativo: checked })
                       }
                     />
                   </TableCell>
@@ -255,6 +260,14 @@ export default function Subcategorias() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label htmlFor="descricao">Descrição</Label>
+              <Input
+                id="descricao"
+                value={formData.descricao}
+                onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+              />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>

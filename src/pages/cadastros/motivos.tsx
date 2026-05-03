@@ -5,23 +5,23 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Edit, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Search, Plus, Edit } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 type Motivo = {
-  id: string;
-  motivo: string;
+  id: number;
+  nm_motivo: string;
   id_tipo_evento: string;
-  fg_ativo: boolean;
-  nm_tipo_evento?: string;
+  ativo: boolean;
+  tipo_evento?: { nm_tipo_evento: string };
 };
 
 type TipoEvento = {
-  id: string;
+  id: number;
   nm_tipo_evento: string;
 };
 
@@ -29,15 +29,13 @@ export default function Motivos() {
   const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
   const [searchTerm, setSearchTerm] = useState("");
   const [tipoFilter, setTipoFilter] = useState<string>("todos");
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const [editingMotivo, setEditingMotivo] = useState<Motivo | null>(null);
   const [formData, setFormData] = useState({
-    motivo: "",
+    nm_motivo: "",
     id_tipo_evento: "",
-    fg_ativo: true,
   });
 
   const { data: motivos, isLoading } = useQuery({
@@ -45,118 +43,108 @@ export default function Motivos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dim_motivo_evento")
-        .select(`
-          id,
-          motivo,
-          id_tipo_evento,
-          fg_ativo,
-          dim_tipo_evento!inner(nm_tipo_evento)
-        `)
-        .order("motivo");
-
+        .select("*, tipo_evento:dim_tipo_evento(nm_tipo_evento)")
+        .order("nm_motivo");
       if (error) throw error;
-
-      return data.map((m: any) => ({
-        ...m,
-        nm_tipo_evento: m.dim_tipo_evento?.nm_tipo_evento,
-      }));
+      return data as Motivo[];
     },
   });
 
   const { data: tiposEvento } = useQuery({
-    queryKey: ["tipos-evento-select"],
+    queryKey: ["tipos-evento"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dim_tipo_evento")
         .select("id, nm_tipo_evento")
-        .eq("fg_ativo", true)
+        .eq("ativo", true)
         .order("nm_tipo_evento");
-
       if (error) throw error;
       return data as TipoEvento[];
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: async (newMotivo: typeof formData) => {
-      const { error } = await supabase.from("dim_motivo_evento").insert([newMotivo]);
+    mutationFn: async (data: any) => {
+      const { error } = await supabase.from("dim_motivo_evento").insert([data]);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["motivos"] });
       toast({ title: "Motivo criado com sucesso" });
-      setDialogOpen(false);
+      setModalOpen(false);
       resetForm();
     },
-    onError: () => {
-      toast({ title: "Erro ao criar motivo", variant: "destructive" });
-    },
+    onError: () => toast({ title: "Erro ao criar motivo", variant: "destructive" }),
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<typeof formData> }) => {
-      const { error } = await supabase.from("dim_motivo_evento").update(updates).eq("id", id);
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const { error } = await supabase.from("dim_motivo_evento").update(data).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["motivos"] });
       toast({ title: "Motivo atualizado com sucesso" });
-      setDialogOpen(false);
+      setModalOpen(false);
       resetForm();
     },
-    onError: () => {
-      toast({ title: "Erro ao atualizar motivo", variant: "destructive" });
-    },
+    onError: () => toast({ title: "Erro ao atualizar motivo", variant: "destructive" }),
   });
 
-  const toggleAtivoMutation = useMutation({
-    mutationFn: async ({ id, fg_ativo }: { id: string; fg_ativo: boolean }) => {
-      const { error } = await supabase.from("dim_motivo_evento").update({ fg_ativo }).eq("id", id);
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, ativo }: { id: number; ativo: boolean }) => {
+      const { error } = await supabase.from("dim_motivo_evento").update({ ativo }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["motivos"] });
-      toast({ title: "Status atualizado" });
+      toast({ title: "Status atualizado com sucesso" });
     },
+    onError: () => toast({ title: "Erro ao atualizar status", variant: "destructive" }),
   });
 
   const filteredMotivos = motivos?.filter((m) => {
     if (!m) return false;
     const matchesSearch = searchTerm === "" || 
-      String(m.motivo ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+      String(m.nm_motivo ?? "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTipo = tipoFilter === "todos" || m.id_tipo_evento === tipoFilter;
     return matchesSearch && matchesTipo;
   }) ?? [];
 
   const resetForm = () => {
-    setFormData({ motivo: "", id_tipo_evento: "", fg_ativo: true });
+    setFormData({ nm_motivo: "", id_tipo_evento: "" });
     setEditingMotivo(null);
   };
 
-  const handleOpenDialog = (motivo?: Motivo) => {
-    if (motivo) {
-      setEditingMotivo(motivo);
-      setFormData({
-        motivo: motivo.motivo,
-        id_tipo_evento: motivo.id_tipo_evento,
-        fg_ativo: motivo.fg_ativo,
-      });
-    } else {
-      resetForm();
-    }
-    setDialogOpen(true);
+  const openCreateModal = () => {
+    resetForm();
+    setModalOpen(true);
+  };
+
+  const openEditModal = (motivo: Motivo) => {
+    setEditingMotivo(motivo);
+    setFormData({
+      nm_motivo: motivo.nm_motivo,
+      id_tipo_evento: String(motivo.id_tipo_evento),
+    });
+    setModalOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const payload = {
+      nm_motivo: formData.nm_motivo,
+      id_tipo_evento: formData.id_tipo_evento,
+      ativo: true,
+    };
+
     if (editingMotivo) {
-      updateMutation.mutate({ id: editingMotivo.id, updates: formData });
+      updateMutation.mutate({ id: editingMotivo.id, data: payload });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(payload);
     }
   };
 
-  // Admin has unrestricted access
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -166,148 +154,128 @@ export default function Motivos() {
   }
 
   return (
-    <div className="p-8 ml-64">
+    <div className="p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold mb-2">Motivos</h1>
-        <p className="text-muted-foreground">Gerenciar motivos de eventos</p>
+        <h1 className="text-3xl font-semibold mb-2">Motivos de Evento</h1>
+        <p className="text-muted-foreground">Gerencie os motivos de encerramento</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-4 border-b flex items-center gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar motivo..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
-          <Select value={tipoFilter} onValueChange={setTipoFilter}>
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Filtrar por tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os tipos</SelectItem>
-              {tiposEvento?.map((tipo) => (
-                <SelectItem key={tipo.id} value={tipo.id}>
-                  {tipo.nm_tipo_evento}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Button onClick={() => handleOpenDialog()} className="ml-auto">
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Motivo
-          </Button>
+      <div className="flex gap-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar motivo..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
         </div>
+        <Select value={tipoFilter} onValueChange={setTipoFilter}>
+          <SelectTrigger className="w-64">
+            <SelectValue placeholder="Filtrar por tipo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os tipos</SelectItem>
+            {tiposEvento?.map((tipo) => (
+              <SelectItem key={tipo.id} value={String(tipo.id)}>
+                {tipo.nm_tipo_evento}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button onClick={openCreateModal}>
+          <Plus className="w-4 h-4 mr-2" />
+          Novo
+        </Button>
+      </div>
 
-        {isLoading ? (
-          <div className="p-8 text-center">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Motivo</TableHead>
+              <TableHead>Tipo de Evento</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-20">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
               <TableRow>
-                <TableHead>Motivo</TableHead>
-                <TableHead>Tipo de Evento</TableHead>
-                <TableHead className="w-24">Ativo</TableHead>
-                <TableHead className="w-24">Ações</TableHead>
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  Carregando...
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredMotivos.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                    Nenhum motivo encontrado
+            ) : filteredMotivos.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  Nenhum motivo encontrado
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredMotivos.map((motivo) => (
+                <TableRow key={motivo.id}>
+                  <TableCell className="font-medium">{motivo.nm_motivo}</TableCell>
+                  <TableCell>{motivo.tipo_evento?.nm_tipo_evento}</TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={motivo.ativo}
+                      onCheckedChange={(checked) =>
+                        toggleMutation.mutate({ id: motivo.id, ativo: checked })
+                      }
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="sm" onClick={() => openEditModal(motivo)}>
+                      <Edit className="w-4 h-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
-              ) : (
-                filteredMotivos.map((motivo) => (
-                  <TableRow key={motivo.id}>
-                    <TableCell className="font-medium">{motivo.motivo}</TableCell>
-                    <TableCell>{motivo.nm_tipo_evento}</TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={motivo.fg_ativo}
-                        onCheckedChange={(checked) =>
-                          toggleAtivoMutation.mutate({ id: motivo.id, fg_ativo: checked })
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(motivo)}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        )}
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingMotivo ? "Editar Motivo" : "Novo Motivo"}</DialogTitle>
+            <DialogTitle>{editingMotivo ? "Editar" : "Novo"} Motivo</DialogTitle>
+            <DialogDescription>Preencha as informações do motivo</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4 py-4">
-              <div>
-                <Label htmlFor="motivo">Motivo *</Label>
-                <Input
-                  id="motivo"
-                  value={formData.motivo}
-                  onChange={(e) => setFormData({ ...formData, motivo: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="tipo">Tipo de Evento *</Label>
-                <Select
-                  value={formData.id_tipo_evento}
-                  onValueChange={(value) => setFormData({ ...formData, id_tipo_evento: value })}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tiposEvento?.map((tipo) => (
-                      <SelectItem key={tipo.id} value={tipo.id}>
-                        {tipo.nm_tipo_evento}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="ativo"
-                  checked={formData.fg_ativo}
-                  onCheckedChange={(checked) => setFormData({ ...formData, fg_ativo: checked })}
-                />
-                <Label htmlFor="ativo">Ativo</Label>
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="nm_motivo">Motivo*</Label>
+              <Input
+                id="nm_motivo"
+                value={formData.nm_motivo}
+                onChange={(e) => setFormData({ ...formData, nm_motivo: e.target.value })}
+                required
+              />
             </div>
-
+            <div>
+              <Label htmlFor="id_tipo_evento">Tipo de Evento*</Label>
+              <Select
+                value={formData.id_tipo_evento}
+                onValueChange={(value) => setFormData({ ...formData, id_tipo_evento: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tiposEvento?.map((tipo) => (
+                    <SelectItem key={tipo.id} value={String(tipo.id)}>
+                      {tipo.nm_tipo_evento}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                {(createMutation.isPending || updateMutation.isPending) && (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                )}
-                {editingMotivo ? "Salvar" : "Criar"}
-              </Button>
+              <Button type="submit">{editingMotivo ? "Salvar" : "Criar"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

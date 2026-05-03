@@ -8,13 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Search, Plus, Edit, AlertCircle } from "lucide-react";
+import { Search, Plus, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type Categoria = {
   id: number;
   nm_categoria: string;
-  fg_ativo: boolean;
+  descricao?: string;
+  ativo: boolean;
 };
 
 export default function Categorias() {
@@ -26,6 +27,7 @@ export default function Categorias() {
   const [editingCategoria, setEditingCategoria] = useState<Categoria | null>(null);
   const [formData, setFormData] = useState({
     nm_categoria: "",
+    descricao: "",
   });
 
   const { data: categorias, isLoading } = useQuery({
@@ -69,8 +71,8 @@ export default function Categorias() {
   });
 
   const toggleMutation = useMutation({
-    mutationFn: async ({ id, fg_ativo }: { id: number; fg_ativo: boolean }) => {
-      const { error } = await supabase.from("dim_categoria_evento").update({ fg_ativo }).eq("id", id);
+    mutationFn: async ({ id, ativo }: { id: number; ativo: boolean }) => {
+      const { error } = await supabase.from("dim_categoria_evento").update({ ativo }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -87,7 +89,7 @@ export default function Categorias() {
   }) ?? [];
 
   const resetForm = () => {
-    setFormData({ nm_categoria: "" });
+    setFormData({ nm_categoria: "", descricao: "" });
     setEditingCategoria(null);
   };
 
@@ -98,13 +100,20 @@ export default function Categorias() {
 
   const openEditModal = (categoria: Categoria) => {
     setEditingCategoria(categoria);
-    setFormData({ nm_categoria: categoria.nm_categoria });
+    setFormData({ 
+      nm_categoria: categoria.nm_categoria,
+      descricao: categoria.descricao || ""
+    });
     setModalOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = { ...formData, fg_ativo: true };
+    const payload = { 
+      nm_categoria: formData.nm_categoria,
+      descricao: formData.descricao || null,
+      ativo: true 
+    };
 
     if (editingCategoria) {
       updateMutation.mutate({ id: editingCategoria.id, data: payload });
@@ -113,7 +122,6 @@ export default function Categorias() {
     }
   };
 
-  // Admin has unrestricted access
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -150,6 +158,7 @@ export default function Categorias() {
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
+              <TableHead>Descrição</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-20">Ações</TableHead>
             </TableRow>
@@ -157,13 +166,13 @@ export default function Categorias() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                   Carregando...
                 </TableCell>
               </TableRow>
             ) : filteredCategorias.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                   Nenhuma categoria encontrada
                 </TableCell>
               </TableRow>
@@ -171,11 +180,12 @@ export default function Categorias() {
               filteredCategorias.map((categoria) => (
                 <TableRow key={categoria.id}>
                   <TableCell className="font-medium">{categoria.nm_categoria}</TableCell>
+                  <TableCell>{categoria.descricao || "—"}</TableCell>
                   <TableCell>
                     <Switch
-                      checked={categoria.fg_ativo}
+                      checked={categoria.ativo}
                       onCheckedChange={(checked) =>
-                        toggleMutation.mutate({ id: categoria.id, fg_ativo: checked })
+                        toggleMutation.mutate({ id: categoria.id, ativo: checked })
                       }
                     />
                   </TableCell>
@@ -205,6 +215,14 @@ export default function Categorias() {
                 value={formData.nm_categoria}
                 onChange={(e) => setFormData({ ...formData, nm_categoria: e.target.value })}
                 required
+              />
+            </div>
+            <div>
+              <Label htmlFor="descricao">Descrição</Label>
+              <Input
+                id="descricao"
+                value={formData.descricao}
+                onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
               />
             </div>
             <DialogFooter>

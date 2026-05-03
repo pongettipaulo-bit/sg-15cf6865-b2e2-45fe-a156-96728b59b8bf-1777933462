@@ -17,7 +17,7 @@ type Unidade = {
   id: string;
   cd_unidade: string;
   nm_unidade: string;
-  fg_ativo: boolean;
+  ativo: boolean;
 };
 
 export default function Unidades() {
@@ -46,7 +46,7 @@ export default function Unidades() {
     mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
       const { error } = await supabase
         .from("dim_unidade")
-        .update({ fg_ativo: ativo })
+        .update({ ativo })
         .eq("id", id);
       if (error) throw error;
     },
@@ -67,7 +67,7 @@ export default function Unidades() {
       } else {
         const { error } = await supabase
           .from("dim_unidade")
-          .insert({ ...data, fg_ativo: true });
+          .insert({ ...data, ativo: true });
         if (error) throw error;
       }
     },
@@ -166,7 +166,7 @@ export default function Unidades() {
                         <TableCell>{unidade.nm_unidade}</TableCell>
                         <TableCell>
                           <Switch
-                            checked={unidade.fg_ativo}
+                            checked={unidade.ativo}
                             onCheckedChange={(checked) =>
                               toggleAtivo.mutate({ id: unidade.id, ativo: checked })
                             }

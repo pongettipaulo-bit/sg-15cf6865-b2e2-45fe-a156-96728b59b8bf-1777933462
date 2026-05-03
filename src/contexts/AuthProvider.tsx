@@ -3,13 +3,14 @@ import { useRouter } from "next/router";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
-interface UserProfile {
+type UserProfile = {
   id: string;
-  nome: string;
+  auth_uid: string;
+  nm_usuario: string;
   email: string;
   perfil: "admin" | "avancado" | "basico";
   ativo: boolean;
-}
+};
 
 interface AuthContextType {
   user: User | null;
@@ -59,8 +60,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data, error } = await supabase
         .from("dim_usuario_sistema")
-        .select("id, nome, email, perfil, ativo")
+        .select("*")
         .eq("auth_uid", authUid)
+        .eq("ativo", true)
         .single();
 
       if (error) throw error;

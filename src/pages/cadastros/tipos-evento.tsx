@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Edit, AlertCircle } from "lucide-react";
+import { Search, Plus, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type TipoEvento = {
@@ -21,7 +21,7 @@ type TipoEvento = {
   id_categoria: number;
   id_subcategoria: number;
   notificar_telegram: boolean;
-  fg_ativo: boolean;
+  ativo: boolean;
   categoria?: { nm_categoria: string };
   subcategoria?: { nm_subcategoria: string };
 };
@@ -72,7 +72,7 @@ export default function TiposEvento() {
       const { data, error } = await supabase
         .from("dim_categoria_evento")
         .select("*")
-        .eq("fg_ativo", true)
+        .eq("ativo", true)
         .order("nm_categoria");
       if (error) throw error;
       return data as Categoria[];
@@ -85,7 +85,7 @@ export default function TiposEvento() {
       const { data, error } = await supabase
         .from("dim_subcategoria_evento")
         .select("*")
-        .eq("fg_ativo", true)
+        .eq("ativo", true)
         .order("nm_subcategoria");
       if (error) throw error;
       return data as Subcategoria[];
@@ -125,8 +125,8 @@ export default function TiposEvento() {
   });
 
   const toggleMutation = useMutation({
-    mutationFn: async ({ id, fg_ativo }: { id: number; fg_ativo: boolean }) => {
-      const { error } = await supabase.from("dim_tipo_evento").update({ fg_ativo }).eq("id", id);
+    mutationFn: async ({ id, ativo }: { id: number; ativo: boolean }) => {
+      const { error } = await supabase.from("dim_tipo_evento").update({ ativo }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -183,7 +183,7 @@ export default function TiposEvento() {
       id_categoria: Number(formData.id_categoria),
       id_subcategoria: Number(formData.id_subcategoria),
       notificar_telegram: formData.notificar_telegram,
-      fg_ativo: true,
+      ativo: true,
     };
 
     if (editingTipo) {
@@ -193,7 +193,6 @@ export default function TiposEvento() {
     }
   };
 
-  // Admin has unrestricted access
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -287,9 +286,9 @@ export default function TiposEvento() {
                   <TableCell>{tipo.notificar_telegram ? "Sim" : "Não"}</TableCell>
                   <TableCell>
                     <Switch
-                      checked={tipo.fg_ativo}
+                      checked={tipo.ativo}
                       onCheckedChange={(checked) =>
-                        toggleMutation.mutate({ id: tipo.id, fg_ativo: checked })
+                        toggleMutation.mutate({ id: tipo.id, ativo: checked })
                       }
                     />
                   </TableCell>

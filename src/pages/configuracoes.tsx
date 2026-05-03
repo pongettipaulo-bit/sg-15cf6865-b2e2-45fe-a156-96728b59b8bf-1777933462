@@ -17,18 +17,18 @@ import { Plus, Settings, Database, Shield } from "lucide-react";
 
 type EventoRegra = {
   id: string;
-  fonte: string;
+  fonte_evento: string;
   codigo_externo: string;
   id_tipo_evento: string;
   nm_tipo_evento?: string;
-  fg_ativo: boolean;
+  ativo: boolean;
 };
 
 type FonteDados = {
   id: string;
   nome: string;
   tipo_conexao: string;
-  fg_ativo: boolean;
+  ativo: boolean;
 };
 
 type Permissao = {
@@ -122,7 +122,7 @@ export default function Configuracoes() {
     mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
       const { error } = await supabase
         .from("cfg_evento_regra")
-        .update({ fg_ativo: ativo })
+        .update({ ativo })
         .eq("id", id);
       if (error) throw error;
     },
@@ -136,7 +136,7 @@ export default function Configuracoes() {
     mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
       const { error } = await supabase
         .from("cfg_fonte_dados")
-        .update({ fg_ativo: ativo })
+        .update({ ativo })
         .eq("id", id);
       if (error) throw error;
     },
@@ -253,14 +253,14 @@ export default function Configuracoes() {
                     <TableBody>
                       {regras?.map((regra) => (
                         <TableRow key={regra.id}>
-                          <TableCell>{regra.fonte}</TableCell>
+                          <TableCell>{regra.fonte_evento}</TableCell>
                           <TableCell className="font-mono text-sm">
                             {regra.codigo_externo}
                           </TableCell>
                           <TableCell>{regra.nm_tipo_evento}</TableCell>
                           <TableCell>
                             <Switch
-                              checked={regra.fg_ativo}
+                              checked={regra.ativo}
                               onCheckedChange={(checked) =>
                                 toggleRegraAtiva.mutate({ id: regra.id, ativo: checked })
                               }
@@ -310,7 +310,7 @@ export default function Configuracoes() {
                           <TableCell>{fonte.tipo_conexao}</TableCell>
                           <TableCell>
                             <Switch
-                              checked={fonte.fg_ativo}
+                              checked={fonte.ativo}
                               onCheckedChange={(checked) =>
                                 toggleFonteAtiva.mutate({ id: fonte.id, ativo: checked })
                               }

@@ -14,14 +14,14 @@ import { useToast } from "@/hooks/use-toast";
 
 type EscalationItem = {
   id: number;
-  pessoa: string;
+  nm_pessoa: string;
   contato: string;
   telegram_chat_id?: string;
   id_tipo_evento: number;
   ordem: number;
   turno?: string;
   nivel_hierarquico: number;
-  fg_ativo: boolean;
+  ativo: boolean;
   tipo_evento?: { nm_tipo_evento: string };
 };
 
@@ -65,7 +65,7 @@ export default function EscalationList() {
       const { data, error } = await supabase
         .from("dim_tipo_evento")
         .select("id, nm_tipo_evento")
-        .eq("fg_ativo", true)
+        .eq("ativo", true)
         .order("nm_tipo_evento");
       if (error) throw error;
       return data as TipoEvento[];
@@ -101,8 +101,8 @@ export default function EscalationList() {
   });
 
   const toggleMutation = useMutation({
-    mutationFn: async ({ id, fg_ativo }: { id: number; fg_ativo: boolean }) => {
-      const { error } = await supabase.from("dim_escalation_list").update({ fg_ativo }).eq("id", id);
+    mutationFn: async ({ id, ativo }: { id: number; ativo: boolean }) => {
+      const { error } = await supabase.from("dim_escalation_list").update({ ativo }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -115,14 +115,14 @@ export default function EscalationList() {
   const filteredEscalation = escalation?.filter((e) => {
     if (!e) return false;
     return searchTerm === "" || 
-      String(e.pessoa ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(e.nm_pessoa ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       String(e.contato ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       String(e.turno ?? "").toLowerCase().includes(searchTerm.toLowerCase());
   }) ?? [];
 
   const resetForm = () => {
     setFormData({
-      pessoa: "",
+      nm_pessoa: "",
       contato: "",
       telegram_chat_id: "",
       id_tipo_evento: "",
@@ -141,7 +141,7 @@ export default function EscalationList() {
   const openEditModal = (item: EscalationItem) => {
     setEditingItem(item);
     setFormData({
-      pessoa: item.pessoa,
+      nm_pessoa: item.nm_pessoa,
       contato: item.contato,
       telegram_chat_id: item.telegram_chat_id || "",
       id_tipo_evento: String(item.id_tipo_evento),
@@ -155,14 +155,14 @@ export default function EscalationList() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const payload = {
-      pessoa: formData.pessoa,
+      nm_pessoa: formData.nm_pessoa,
       contato: formData.contato,
       telegram_chat_id: formData.telegram_chat_id || null,
       id_tipo_evento: Number(formData.id_tipo_evento),
       ordem: formData.ordem,
       turno: formData.turno || null,
       nivel_hierarquico: formData.nivel_hierarquico,
-      fg_ativo: true,
+      ativo: true,
     };
 
     if (editingItem) {
@@ -234,7 +234,7 @@ export default function EscalationList() {
             ) : (
               filteredEscalation.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.pessoa}</TableCell>
+                  <TableCell className="font-medium">{item.nm_pessoa}</TableCell>
                   <TableCell>{item.contato}</TableCell>
                   <TableCell>{item.tipo_evento?.nm_tipo_evento}</TableCell>
                   <TableCell>{item.ordem}</TableCell>
@@ -242,9 +242,9 @@ export default function EscalationList() {
                   <TableCell>{item.nivel_hierarquico}</TableCell>
                   <TableCell>
                     <Switch
-                      checked={item.fg_ativo}
+                      checked={item.ativo}
                       onCheckedChange={(checked) =>
-                        toggleMutation.mutate({ id: item.id, fg_ativo: checked })
+                        toggleMutation.mutate({ id: item.id, ativo: checked })
                       }
                     />
                   </TableCell>
@@ -268,11 +268,11 @@ export default function EscalationList() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="pessoa">Pessoa*</Label>
+              <Label htmlFor="nm_pessoa">Pessoa*</Label>
               <Input
-                id="pessoa"
-                value={formData.pessoa}
-                onChange={(e) => setFormData({ ...formData, pessoa: e.target.value })}
+                id="nm_pessoa"
+                value={formData.nm_pessoa}
+                onChange={(e) => setFormData({ ...formData, nm_pessoa: e.target.value })}
                 required
               />
             </div>

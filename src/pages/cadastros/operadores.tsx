@@ -17,7 +17,7 @@ type Operador = {
   id: string;
   cd_operador: string;
   nm_operador: string;
-  fg_ativo: boolean;
+  ativo: boolean;
 };
 
 export default function Operadores() {
@@ -46,7 +46,7 @@ export default function Operadores() {
     mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
       const { error } = await supabase
         .from("dim_operador")
-        .update({ fg_ativo: ativo })
+        .update({ ativo })
         .eq("id", id);
       if (error) throw error;
     },
@@ -67,7 +67,7 @@ export default function Operadores() {
       } else {
         const { error } = await supabase
           .from("dim_operador")
-          .insert({ ...data, fg_ativo: true });
+          .insert({ ...data, ativo: true });
         if (error) throw error;
       }
     },
@@ -166,7 +166,7 @@ export default function Operadores() {
                         <TableCell>{op.nm_operador}</TableCell>
                         <TableCell>
                           <Switch
-                            checked={op.fg_ativo}
+                            checked={op.ativo}
                             onCheckedChange={(checked) =>
                               toggleAtivo.mutate({ id: op.id, ativo: checked })
                             }

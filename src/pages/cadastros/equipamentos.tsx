@@ -18,13 +18,13 @@ type Equipamento = {
   id: string;
   cd_equipamento: string;
   nm_equipamento: string;
-  id_grupo: string;
-  id_tipo: string;
-  id_unidade: string;
-  fg_ativo: boolean;
-  nm_grupo?: string;
-  nm_tipo?: string;
-  nm_unidade?: string;
+  id_grupo?: string;
+  id_tipo?: string;
+  id_unidade?: string;
+  ativo: boolean;
+  grupo?: { nm_grupo: string };
+  tipo?: { nm_tipo: string };
+  unidade?: { nm_unidade: string };
 };
 
 export default function Equipamentos() {
@@ -95,25 +95,26 @@ export default function Equipamentos() {
       const { data, error } = await supabase
         .from("dim_unidade")
         .select("*")
-        .eq("fg_ativo", true)
+        .eq("ativo", true)
         .order("nm_unidade");
       if (error) throw error;
       return data;
     },
   });
 
-  const toggleAtivo = useMutation({
+  const toggleMutation = useMutation({
     mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
       const { error } = await supabase
         .from("dim_equipamento")
-        .update({ fg_ativo: ativo })
+        .update({ ativo })
         .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["equipamentos_crud"] });
-      toast({ title: "Equipamento atualizado" });
+      toast({ title: "Status atualizado com sucesso" });
     },
+    onError: () => toast({ title: "Erro ao atualizar status", variant: "destructive" }),
   });
 
   const salvar = useMutation({
@@ -127,7 +128,7 @@ export default function Equipamentos() {
       } else {
         const { error } = await supabase
           .from("dim_equipamento")
-          .insert({ ...data, fg_ativo: true });
+          .insert({ ...data, ativo: true });
         if (error) throw error;
       }
     },
@@ -244,9 +245,9 @@ export default function Equipamentos() {
                         <TableCell className="text-sm">{equip.nm_unidade}</TableCell>
                         <TableCell>
                           <Switch
-                            checked={equip.fg_ativo}
+                            checked={equip.ativo}
                             onCheckedChange={(checked) =>
-                              toggleAtivo.mutate({ id: equip.id, ativo: checked })
+                              toggleMutation.mutate({ id: equip.id, ativo: checked })
                             }
                           />
                         </TableCell>
