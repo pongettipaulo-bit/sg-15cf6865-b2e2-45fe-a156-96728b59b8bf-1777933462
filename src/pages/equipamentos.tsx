@@ -69,7 +69,7 @@ export default function Equipamentos() {
 
   // Lista de equipamentos
   const { data: equipamentos, isLoading } = useQuery({
-    queryKey: ["equipamentos-lista"],
+    queryKey: ["equipamentos"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dim_equipamento")
@@ -93,17 +93,17 @@ export default function Equipamentos() {
         throw error;
       }
 
-      console.log("Equipamentos carregados:", data?.length || 0);
+      console.log("Equipamentos carregados:", data?.length);
 
       // Get event counts for each equipment from vw_fila_evento_aberta
       const { data: eventosAbertos } = await supabase
         .from("vw_fila_evento_aberta")
         .select("id_equipamento");
 
-      const eventosPorEquipamento = eventosAbertos?.reduce((acc: Record<string, number>, e) => {
-        acc[e.id_equipamento] = (acc[e.id_equipamento] || 0) + 1;
+      const eventosPorEquipamento = eventosAbertos?.reduce((acc, evento) => {
+        acc[evento.id_equipamento] = (acc[evento.id_equipamento] || 0) + 1;
         return acc;
-      }, {}) || {};
+      }, {} as Record<string, number>) || {};
 
       return data.map((e: any) => ({
         id: e.id,
@@ -114,13 +114,13 @@ export default function Equipamentos() {
         nm_tipo: e.dim_tipo_equipamento?.nm_tipo_equipamento || "—",
         nm_unidade: e.dim_unidade?.nm_unidade || "—",
         total_eventos_abertos: eventosPorEquipamento[e.id] || 0,
-      })) as Equipamento[];
+      }));
     },
   });
 
   // Histórico de eventos do equipamento selecionado
   const { data: historico, isLoading: loadingHistorico } = useQuery({
-    queryKey: ["historico-equipamento", equipamentoSelecionado?.id],
+    queryKey: ["historico", equipamentoSelecionado?.id],
     queryFn: async () => {
       if (!equipamentoSelecionado) return [];
 
@@ -131,6 +131,7 @@ export default function Equipamentos() {
           criado_em,
           dt_fim,
           observacao_fim,
+          tp_encerramento,
           tipo_evento:dim_tipo_evento(nm_tipo_evento, criticidade)
         `)
         .eq("id_equipamento", equipamentoSelecionado.id)
@@ -138,24 +139,20 @@ export default function Equipamentos() {
         .order("dt_fim", { ascending: false })
         .limit(30);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao carregar histórico:", error);
+        throw error;
+      }
 
-      return data.map((e: any) => {
-        const inicio = new Date(e.criado_em);
-        const fim = new Date(e.dt_fim);
-        const duracaoMs = fim.getTime() - inicio.getTime();
-        const duracaoMinutos = Math.floor(duracaoMs / 1000 / 60);
-
-        return {
-          id: e.id,
-          nm_tipo_evento: e.tipo_evento?.nm_tipo_evento || "",
-          criticidade: e.tipo_evento?.criticidade || "media",
-          criado_em: e.criado_em,
-          dt_fim: e.dt_fim,
-          observacao_fim: e.observacao_fim,
-          duracao_minutos: duracaoMinutos,
-        };
-      }) as HistoricoEvento[];
+      return data.map((e: any) => ({
+        id: e.id,
+        nm_tipo_evento: e.tipo_evento?.nm_tipo_evento || "",
+        criticidade: e.tipo_evento?.criticidade || "media",
+        criado_em: e.criado_em,
+        dt_fim: e.dt_fim,
+        observacao_fim: e.observacao_fim,
+        tp_encerramento: e.tp_encerramento,
+      }));
     },
     enabled: !!equipamentoSelecionado,
   });

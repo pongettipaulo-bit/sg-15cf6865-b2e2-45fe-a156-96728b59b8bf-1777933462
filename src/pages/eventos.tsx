@@ -20,15 +20,20 @@ import { ModalNovoPrazo } from "@/components/eventos/ModalNovoPrazo";
 type Evento = {
   id: string;
   id_tipo_evento: number;
+  id_equipamento: string;
+  id_operacao?: string;
+  id_operador?: string;
+  id_unidade?: string;
   nm_tipo_evento: string;
+  nm_equipamento: string;
+  nm_operacao?: string;
+  nm_operador?: string;
+  nm_unidade?: string;
   criticidade: string;
   status: string;
   dt_prazo: string | null;
   dt_fim: string | null;
   prazo_vencido: boolean;
-  id_equipamento: string;
-  nm_equipamento: string;
-  nm_operacao?: string;
   nm_categoria: string;
   nm_subcategoria: string;
   nivel_escalonamento: number;
@@ -37,7 +42,7 @@ type Evento = {
   observacao_inicio?: string;
   observacao_fim?: string;
   id_motivo?: number;
-  nm_motivo?: string;
+  motivo?: string;
   tp_encerramento?: string;
 };
 
@@ -58,17 +63,8 @@ export default function Eventos() {
     queryKey: ["eventos-abertos"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("fila_evento")
-        .select(`
-          *,
-          tipo_evento:dim_tipo_evento(nm_tipo_evento, criticidade),
-          equipamento:dim_equipamento(nm_equipamento),
-          operacao:dim_operacao(nm_operacao),
-          motivo:dim_motivo_evento(nm_motivo),
-          categoria:dim_tipo_evento(id_categoria),
-          subcategoria:dim_tipo_evento(id_subcategoria)
-        `)
-        .in("status", ["pendente", "em_andamento", "escalado", "atrasado", "encerrado", "cancelado"])
+        .from("vw_fila_evento_aberta")
+        .select("*")
         .order("criado_em", { ascending: false });
 
       if (error) {
@@ -76,29 +72,10 @@ export default function Eventos() {
         throw error;
       }
       
-      return data.map((e: any) => ({
-        id: e.id,
-        id_tipo_evento: e.id_tipo_evento,
-        nm_tipo_evento: e.tipo_evento?.nm_tipo_evento || "",
-        criticidade: e.tipo_evento?.criticidade || "media",
-        status: e.status,
-        dt_prazo: e.dt_prazo,
-        dt_fim: e.dt_fim,
-        prazo_vencido: e.prazo_vencido || false,
-        id_equipamento: e.id_equipamento,
-        nm_equipamento: e.equipamento?.nm_equipamento || "",
-        nm_operacao: e.operacao?.nm_operacao,
-        nm_categoria: "",
-        nm_subcategoria: "",
-        nivel_escalonamento: e.nivel_escalonamento || 0,
-        vl_tempo_duracao_max: e.vl_tempo_duracao_max || 0,
-        criado_em: e.criado_em,
-        observacao_inicio: e.observacao_inicio,
-        observacao_fim: e.observacao_fim,
-        id_motivo: e.id_motivo,
-        nm_motivo: e.motivo?.nm_motivo,
-        tp_encerramento: e.tp_encerramento,
-      })) as Evento[];
+      console.log("Eventos carregados da view:", data?.length, "eventos");
+      console.log("Estrutura do primeiro evento:", data?.[0]);
+      
+      return data as Evento[];
     },
     refetchInterval: 30000,
   });
