@@ -100,8 +100,15 @@ export default function Configuracoes() {
         .from("cfg_permissao_perfil")
         .select("*")
         .eq("perfil", "avancado");
+      
+      // Handle 404 gracefully - table doesn't exist yet
+      if (error && error.code === "PGRST116") {
+        console.log("cfg_permissao_perfil table not found - returning empty permissions");
+        return [];
+      }
+      
       if (error) throw error;
-      return data as Permissao[];
+      return data;
     },
   });
 
@@ -112,8 +119,15 @@ export default function Configuracoes() {
         .from("cfg_permissao_perfil")
         .select("*")
         .eq("perfil", "basico");
+      
+      // Handle 404 gracefully - table doesn't exist yet
+      if (error && error.code === "PGRST116") {
+        console.log("cfg_permissao_perfil table not found - returning empty permissions");
+        return [];
+      }
+      
       if (error) throw error;
-      return data as Permissao[];
+      return data;
     },
   });
 

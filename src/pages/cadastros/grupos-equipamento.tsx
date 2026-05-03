@@ -12,10 +12,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Search, Edit } from "lucide-react";
 
-type Grupo = {
+type GrupoEquipamento = {
   id: string;
   cd_grupo: string;
-  nm_grupo: string;
+  nm_grupo_equipamento: string;
 };
 
 export default function GruposEquipamento() {
@@ -25,18 +25,18 @@ export default function GruposEquipamento() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-  const [editando, setEditando] = useState<Grupo | null>(null);
-  const [formData, setFormData] = useState({ cd_grupo: "", nm_grupo: "" });
+  const [editando, setEditando] = useState<GrupoEquipamento | null>(null);
+  const [formData, setFormData] = useState({ cd_grupo: "", nm_grupo_equipamento: "" });
 
   const { data: grupos, isLoading } = useQuery({
-    queryKey: ["grupos_equipamento"],
+    queryKey: ["grupos-equipamento"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dim_grupo_equipamento")
         .select("*")
         .order("cd_grupo");
       if (error) throw error;
-      return data as Grupo[];
+      return data as GrupoEquipamento[];
     },
   });
 
@@ -56,26 +56,19 @@ export default function GruposEquipamento() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["grupos_equipamento"] });
+      queryClient.invalidateQueries({ queryKey: ["grupos-equipamento"] });
       toast({ title: editando ? "Grupo atualizado" : "Grupo criado" });
       fecharModal();
     },
   });
 
-  const filteredGrupos = grupos?.filter((g) => {
-    if (!g) return false;
-    return searchTerm === "" || 
-      String(g.cd_grupo ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(g.nm_grupo ?? "").toLowerCase().includes(searchTerm.toLowerCase());
-  }) ?? [];
-
-  const abrirModal = (grupo?: Grupo) => {
+  const abrirModal = (grupo?: GrupoEquipamento) => {
     if (grupo) {
       setEditando(grupo);
-      setFormData({ cd_grupo: grupo.cd_grupo, nm_grupo: grupo.nm_grupo });
+      setFormData({ cd_grupo: grupo.cd_grupo, nm_grupo_equipamento: grupo.nm_grupo_equipamento });
     } else {
       setEditando(null);
-      setFormData({ cd_grupo: "", nm_grupo: "" });
+      setFormData({ cd_grupo: "", nm_grupo_equipamento: "" });
     }
     setModalOpen(true);
   };
@@ -90,7 +83,13 @@ export default function GruposEquipamento() {
     salvar.mutate(formData);
   };
 
-  // Admin has unrestricted access
+  const filteredGrupos = grupos?.filter((g) => {
+    if (!g) return false;
+    return searchTerm === "" || 
+      String(g.cd_grupo ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(g.nm_grupo_equipamento ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+  }) ?? [];
+
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -104,7 +103,7 @@ export default function GruposEquipamento() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-semibold mb-2">Grupos de Equipamento</h1>
-          <p className="text-muted-foreground">Classificação de equipamentos por grupo</p>
+          <p className="text-muted-foreground">Gestão de grupos de equipamentos</p>
         </div>
         <Button onClick={() => abrirModal()}>
           <Plus className="w-4 h-4 mr-2" />
@@ -146,7 +145,7 @@ export default function GruposEquipamento() {
                     filteredGrupos.map((grupo) => (
                       <TableRow key={grupo.id}>
                         <TableCell className="font-mono">{grupo.cd_grupo}</TableCell>
-                        <TableCell>{grupo.nm_grupo}</TableCell>
+                        <TableCell>{grupo.nm_grupo_equipamento}</TableCell>
                         <TableCell>
                           <Button variant="ghost" size="sm" onClick={() => abrirModal(grupo)}>
                             <Edit className="w-4 h-4" />
@@ -184,11 +183,11 @@ export default function GruposEquipamento() {
               />
             </div>
             <div>
-              <Label htmlFor="nm_grupo">Nome *</Label>
+              <Label htmlFor="nm_grupo_equipamento">Nome *</Label>
               <Input
-                id="nm_grupo"
-                value={formData.nm_grupo}
-                onChange={(e) => setFormData({ ...formData, nm_grupo: e.target.value })}
+                id="nm_grupo_equipamento"
+                value={formData.nm_grupo_equipamento}
+                onChange={(e) => setFormData({ ...formData, nm_grupo_equipamento: e.target.value })}
                 required
               />
             </div>

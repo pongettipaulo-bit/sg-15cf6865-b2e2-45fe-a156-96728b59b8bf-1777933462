@@ -22,12 +22,19 @@ type Equipamento = {
   id_tipo: string;
   id_unidade: string;
   ativo: boolean;
-  grupo?: { nm_grupo: string };
-  tipo?: { nm_tipo: string };
+  grupo?: { nm_grupo_equipamento: string };
+  tipo?: { nm_tipo_equipamento: string };
   unidade?: { nm_unidade: string };
-  nm_grupo?: string;
-  nm_tipo?: string;
-  nm_unidade?: string;
+};
+
+type GrupoEquipamento = {
+  id: string;
+  nm_grupo_equipamento: string;
+};
+
+type TipoEquipamento = {
+  id: string;
+  nm_tipo_equipamento: string;
 };
 
 export default function Equipamentos() {
@@ -47,48 +54,43 @@ export default function Equipamentos() {
   });
 
   const { data: equipamentos, isLoading } = useQuery({
-    queryKey: ["equipamentos_crud"],
+    queryKey: ["equipamentos-cadastro"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dim_equipamento")
         .select(`
           *,
-          nm_grupo:dim_grupo_equipamento(nm_grupo),
-          nm_tipo:dim_tipo_equipamento(nm_tipo),
-          nm_unidade:dim_unidade(nm_unidade)
+          grupo:dim_grupo_equipamento(nm_grupo_equipamento),
+          tipo:dim_tipo_equipamento(nm_tipo_equipamento),
+          unidade:dim_unidade(nm_unidade)
         `)
         .order("cd_equipamento");
       if (error) throw error;
-      return data.map((e: any) => ({
-        ...e,
-        nm_grupo: e.nm_grupo?.nm_grupo || "—",
-        nm_tipo: e.nm_tipo?.nm_tipo || "—",
-        nm_unidade: e.nm_unidade?.nm_unidade || "—",
-      })) as Equipamento[];
+      return data as Equipamento[];
     },
   });
 
   const { data: grupos } = useQuery({
-    queryKey: ["grupos_select"],
+    queryKey: ["grupos-equipamento"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dim_grupo_equipamento")
-        .select("*")
-        .order("nm_grupo");
+        .select("id, nm_grupo_equipamento")
+        .order("nm_grupo_equipamento");
       if (error) throw error;
-      return data;
+      return data as GrupoEquipamento[];
     },
   });
 
   const { data: tipos } = useQuery({
-    queryKey: ["tipos_equip_select"],
+    queryKey: ["tipos-equipamento"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dim_tipo_equipamento")
-        .select("*")
-        .order("nm_tipo");
+        .select("id, nm_tipo_equipamento")
+        .order("nm_tipo_equipamento");
       if (error) throw error;
-      return data;
+      return data as TipoEquipamento[];
     },
   });
 
@@ -243,9 +245,9 @@ export default function Equipamentos() {
                       <TableRow key={equip.id}>
                         <TableCell className="font-mono">{equip.cd_equipamento}</TableCell>
                         <TableCell>{equip.nm_equipamento}</TableCell>
-                        <TableCell className="text-sm">{equip.nm_grupo}</TableCell>
-                        <TableCell className="text-sm">{equip.nm_tipo}</TableCell>
-                        <TableCell className="text-sm">{equip.nm_unidade}</TableCell>
+                        <TableCell className="text-sm">{equip.grupo?.nm_grupo_equipamento || "—"}</TableCell>
+                        <TableCell className="text-sm">{equip.tipo?.nm_tipo_equipamento || "—"}</TableCell>
+                        <TableCell className="text-sm">{equip.unidade?.nm_unidade || "—"}</TableCell>
                         <TableCell>
                           <Switch
                             checked={equip.ativo}
@@ -309,9 +311,9 @@ export default function Equipamentos() {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {grupos?.map((grupo: any) => (
+                  {grupos?.map((grupo) => (
                     <SelectItem key={grupo.id} value={grupo.id}>
-                      {grupo.nm_grupo}
+                      {grupo.nm_grupo_equipamento}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -327,9 +329,9 @@ export default function Equipamentos() {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {tipos?.map((tipo: any) => (
+                  {tipos?.map((tipo) => (
                     <SelectItem key={tipo.id} value={tipo.id}>
-                      {tipo.nm_tipo}
+                      {tipo.nm_tipo_equipamento}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -15,7 +15,7 @@ import { Plus, Search, Edit } from "lucide-react";
 type TipoEquipamento = {
   id: string;
   cd_tipo: string;
-  nm_tipo: string;
+  nm_tipo_equipamento: string;
 };
 
 export default function TiposEquipamento() {
@@ -26,10 +26,10 @@ export default function TiposEquipamento() {
   const [searchTerm, setSearchTerm] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<TipoEquipamento | null>(null);
-  const [formData, setFormData] = useState({ cd_tipo: "", nm_tipo: "" });
+  const [formData, setFormData] = useState({ cd_tipo: "", nm_tipo_equipamento: "" });
 
   const { data: tipos, isLoading } = useQuery({
-    queryKey: ["tipos_equipamento"],
+    queryKey: ["tipos-equipamento"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dim_tipo_equipamento")
@@ -56,26 +56,19 @@ export default function TiposEquipamento() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tipos_equipamento"] });
+      queryClient.invalidateQueries({ queryKey: ["tipos-equipamento"] });
       toast({ title: editando ? "Tipo atualizado" : "Tipo criado" });
       fecharModal();
     },
   });
 
-  const filteredTipos = tipos?.filter((t) => {
-    if (!t) return false;
-    return searchTerm === "" || 
-      String(t.cd_tipo ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(t.nm_tipo ?? "").toLowerCase().includes(searchTerm.toLowerCase());
-  }) ?? [];
-
   const abrirModal = (tipo?: TipoEquipamento) => {
     if (tipo) {
       setEditando(tipo);
-      setFormData({ cd_tipo: tipo.cd_tipo, nm_tipo: tipo.nm_tipo });
+      setFormData({ cd_tipo: tipo.cd_tipo, nm_tipo_equipamento: tipo.nm_tipo_equipamento });
     } else {
       setEditando(null);
-      setFormData({ cd_tipo: "", nm_tipo: "" });
+      setFormData({ cd_tipo: "", nm_tipo_equipamento: "" });
     }
     setModalOpen(true);
   };
@@ -90,7 +83,13 @@ export default function TiposEquipamento() {
     salvar.mutate(formData);
   };
 
-  // Admin has unrestricted access
+  const filteredTipos = tipos?.filter((t) => {
+    if (!t) return false;
+    return searchTerm === "" || 
+      String(t.cd_tipo ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(t.nm_tipo_equipamento ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+  }) ?? [];
+
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -104,7 +103,7 @@ export default function TiposEquipamento() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-semibold mb-2">Tipos de Equipamento</h1>
-          <p className="text-muted-foreground">Classificação de equipamentos por tipo</p>
+          <p className="text-muted-foreground">Gestão de tipos de equipamentos</p>
         </div>
         <Button onClick={() => abrirModal()}>
           <Plus className="w-4 h-4 mr-2" />
@@ -146,7 +145,7 @@ export default function TiposEquipamento() {
                     filteredTipos.map((tipo) => (
                       <TableRow key={tipo.id}>
                         <TableCell className="font-mono">{tipo.cd_tipo}</TableCell>
-                        <TableCell>{tipo.nm_tipo}</TableCell>
+                        <TableCell>{tipo.nm_tipo_equipamento}</TableCell>
                         <TableCell>
                           <Button variant="ghost" size="sm" onClick={() => abrirModal(tipo)}>
                             <Edit className="w-4 h-4" />
@@ -184,11 +183,11 @@ export default function TiposEquipamento() {
               />
             </div>
             <div>
-              <Label htmlFor="nm_tipo">Nome *</Label>
+              <Label htmlFor="nm_tipo_equipamento">Nome *</Label>
               <Input
-                id="nm_tipo"
-                value={formData.nm_tipo}
-                onChange={(e) => setFormData({ ...formData, nm_tipo: e.target.value })}
+                id="nm_tipo_equipamento"
+                value={formData.nm_tipo_equipamento}
+                onChange={(e) => setFormData({ ...formData, nm_tipo_equipamento: e.target.value })}
                 required
               />
             </div>

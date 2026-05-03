@@ -53,22 +53,22 @@ export default function Equipamentos() {
         .from("dim_equipamento")
         .select(`
           *,
-          total_eventos:fila_evento!fila_evento_id_equipamento_fkey(count)
+          grupo:dim_grupo_equipamento(nm_grupo_equipamento),
+          tipo:dim_tipo_equipamento(nm_tipo_equipamento)
         `)
-        .eq("fg_ativo", true)
+        .eq("ativo", true)
         .order("nm_equipamento");
 
       if (error) throw error;
 
-      // Processar dados
       return data.map((eq: any) => ({
         id: eq.id,
         cd_equipamento: eq.cd_equipamento,
         nm_equipamento: eq.nm_equipamento,
-        nm_grupo: eq.nm_grupo || "Sem grupo",
-        nm_tipo: eq.nm_tipo || "Sem tipo",
+        nm_grupo: eq.grupo?.nm_grupo_equipamento || "Sem grupo",
+        nm_tipo: eq.tipo?.nm_tipo_equipamento || "Sem tipo",
         fg_online: eq.fg_online || false,
-        total_eventos_abertos: eq.total_eventos?.[0]?.count || 0,
+        total_eventos_abertos: 0,
       })) as Equipamento[];
     },
     refetchInterval: 30000,
