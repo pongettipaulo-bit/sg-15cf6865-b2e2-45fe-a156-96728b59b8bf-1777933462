@@ -165,6 +165,54 @@ export default function Eventos() {
     setModalNovoPrazo(true);
   };
 
+  const encerrarSemTratativa = useMutation({
+    mutationFn: async (evento: Evento) => {
+      const { error } = await supabase
+        .from("fila_evento")
+        .update({
+          status: "encerrado",
+          tp_encerramento: "sem_tratativa",
+          dt_fim: new Date().toISOString(),
+          observacao_fim: "Encerrado sem tratativa",
+          id_usuario_fim: profile?.id,
+        })
+        .eq("id", evento.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
+      toast({ title: "Evento encerrado sem tratativa" });
+    },
+    onError: () => {
+      toast({ title: "Erro ao encerrar evento", variant: "destructive" });
+    },
+  });
+
+  const cancelarEvento = useMutation({
+    mutationFn: async (evento: Evento) => {
+      const { error } = await supabase
+        .from("fila_evento")
+        .update({
+          status: "cancelado",
+          tp_encerramento: "cancelado",
+          dt_fim: new Date().toISOString(),
+          observacao_fim: "Evento cancelado",
+          id_usuario_fim: profile?.id,
+        })
+        .eq("id", evento.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
+      toast({ title: "Evento cancelado" });
+    },
+    onError: () => {
+      toast({ title: "Erro ao cancelar evento", variant: "destructive" });
+    },
+  });
+
   const EventoCard = ({ evento }: { evento: Evento }) => (
     <Card className={`${evento.prazo_vencido ? "border-l-4 border-l-red-600" : ""}`}>
       <CardContent className="p-4 space-y-3">
@@ -219,9 +267,8 @@ export default function Eventos() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => {
-                  toast({ title: "Funcionalidade em desenvolvimento" });
-                }}
+                onClick={() => encerrarSemTratativa.mutate(evento)}
+                disabled={encerrarSemTratativa.isPending}
               >
                 Sem tratativa
               </Button>
@@ -229,9 +276,8 @@ export default function Eventos() {
                 size="sm"
                 variant="outline"
                 className="text-destructive hover:text-destructive"
-                onClick={() => {
-                  toast({ title: "Funcionalidade em desenvolvimento" });
-                }}
+                onClick={() => cancelarEvento.mutate(evento)}
+                disabled={cancelarEvento.isPending}
               >
                 Cancelar
               </Button>

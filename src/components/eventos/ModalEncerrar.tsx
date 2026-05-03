@@ -38,6 +38,7 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
           dt_fim: new Date().toISOString(),
           observacao_fim: observacaoFim || null,
           id_usuario_fim: profile.id,
+          tp_encerramento: "tratativa",
         })
         .eq("id", evento.id);
 
