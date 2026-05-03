@@ -14,7 +14,7 @@ import { Plus, Search, Edit } from "lucide-react";
 
 type GrupoEquipamento = {
   id: string;
-  cd_grupo: string;
+  cd_grupo_equipamento: string;
   nm_grupo_equipamento: string;
 };
 
@@ -26,7 +26,7 @@ export default function GruposEquipamento() {
   const [searchTerm, setSearchTerm] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<GrupoEquipamento | null>(null);
-  const [formData, setFormData] = useState({ cd_grupo: "", nm_grupo_equipamento: "" });
+  const [formData, setFormData] = useState({ cd_grupo_equipamento: "", nm_grupo_equipamento: "" });
 
   const { data: grupos, isLoading } = useQuery({
     queryKey: ["grupos-equipamento"],
@@ -34,7 +34,7 @@ export default function GruposEquipamento() {
       const { data, error } = await supabase
         .from("dim_grupo_equipamento")
         .select("*")
-        .order("cd_grupo");
+        .order("cd_grupo_equipamento");
       if (error) throw error;
       return data as GrupoEquipamento[];
     },
@@ -65,10 +65,10 @@ export default function GruposEquipamento() {
   const abrirModal = (grupo?: GrupoEquipamento) => {
     if (grupo) {
       setEditando(grupo);
-      setFormData({ cd_grupo: grupo.cd_grupo, nm_grupo_equipamento: grupo.nm_grupo_equipamento });
+      setFormData({ cd_grupo_equipamento: grupo.cd_grupo_equipamento, nm_grupo_equipamento: grupo.nm_grupo_equipamento });
     } else {
       setEditando(null);
-      setFormData({ cd_grupo: "", nm_grupo_equipamento: "" });
+      setFormData({ cd_grupo_equipamento: "", nm_grupo_equipamento: "" });
     }
     setModalOpen(true);
   };
@@ -86,7 +86,7 @@ export default function GruposEquipamento() {
   const filteredGrupos = grupos?.filter((g) => {
     if (!g) return false;
     return searchTerm === "" || 
-      String(g.cd_grupo ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(g.cd_grupo_equipamento ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       String(g.nm_grupo_equipamento ?? "").toLowerCase().includes(searchTerm.toLowerCase());
   }) ?? [];
 
@@ -144,7 +144,7 @@ export default function GruposEquipamento() {
                   {filteredGrupos && filteredGrupos.length > 0 ? (
                     filteredGrupos.map((grupo) => (
                       <TableRow key={grupo.id}>
-                        <TableCell className="font-mono">{grupo.cd_grupo}</TableCell>
+                        <TableCell className="font-mono">{grupo.cd_grupo_equipamento}</TableCell>
                         <TableCell>{grupo.nm_grupo_equipamento}</TableCell>
                         <TableCell>
                           <Button variant="ghost" size="sm" onClick={() => abrirModal(grupo)}>
@@ -174,11 +174,11 @@ export default function GruposEquipamento() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="cd_grupo">Código *</Label>
+              <Label htmlFor="cd_grupo_equipamento">Código *</Label>
               <Input
-                id="cd_grupo"
-                value={formData.cd_grupo}
-                onChange={(e) => setFormData({ ...formData, cd_grupo: e.target.value })}
+                id="cd_grupo_equipamento"
+                value={formData.cd_grupo_equipamento}
+                onChange={(e) => setFormData({ ...formData, cd_grupo_equipamento: e.target.value })}
                 required
               />
             </div>

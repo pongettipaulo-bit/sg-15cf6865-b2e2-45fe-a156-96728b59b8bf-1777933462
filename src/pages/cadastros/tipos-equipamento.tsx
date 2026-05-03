@@ -14,7 +14,7 @@ import { Plus, Search, Edit } from "lucide-react";
 
 type TipoEquipamento = {
   id: string;
-  cd_tipo: string;
+  cd_tipo_equipamento: string;
   nm_tipo_equipamento: string;
 };
 
@@ -26,7 +26,7 @@ export default function TiposEquipamento() {
   const [searchTerm, setSearchTerm] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<TipoEquipamento | null>(null);
-  const [formData, setFormData] = useState({ cd_tipo: "", nm_tipo_equipamento: "" });
+  const [formData, setFormData] = useState({ cd_tipo_equipamento: "", nm_tipo_equipamento: "" });
 
   const { data: tipos, isLoading } = useQuery({
     queryKey: ["tipos-equipamento"],
@@ -34,7 +34,7 @@ export default function TiposEquipamento() {
       const { data, error } = await supabase
         .from("dim_tipo_equipamento")
         .select("*")
-        .order("cd_tipo");
+        .order("cd_tipo_equipamento");
       if (error) throw error;
       return data as TipoEquipamento[];
     },
@@ -65,10 +65,10 @@ export default function TiposEquipamento() {
   const abrirModal = (tipo?: TipoEquipamento) => {
     if (tipo) {
       setEditando(tipo);
-      setFormData({ cd_tipo: tipo.cd_tipo, nm_tipo_equipamento: tipo.nm_tipo_equipamento });
+      setFormData({ cd_tipo_equipamento: tipo.cd_tipo_equipamento, nm_tipo_equipamento: tipo.nm_tipo_equipamento });
     } else {
       setEditando(null);
-      setFormData({ cd_tipo: "", nm_tipo_equipamento: "" });
+      setFormData({ cd_tipo_equipamento: "", nm_tipo_equipamento: "" });
     }
     setModalOpen(true);
   };
@@ -86,7 +86,7 @@ export default function TiposEquipamento() {
   const filteredTipos = tipos?.filter((t) => {
     if (!t) return false;
     return searchTerm === "" || 
-      String(t.cd_tipo ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(t.cd_tipo_equipamento ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       String(t.nm_tipo_equipamento ?? "").toLowerCase().includes(searchTerm.toLowerCase());
   }) ?? [];
 
@@ -144,7 +144,7 @@ export default function TiposEquipamento() {
                   {filteredTipos && filteredTipos.length > 0 ? (
                     filteredTipos.map((tipo) => (
                       <TableRow key={tipo.id}>
-                        <TableCell className="font-mono">{tipo.cd_tipo}</TableCell>
+                        <TableCell className="font-mono">{tipo.cd_tipo_equipamento}</TableCell>
                         <TableCell>{tipo.nm_tipo_equipamento}</TableCell>
                         <TableCell>
                           <Button variant="ghost" size="sm" onClick={() => abrirModal(tipo)}>
@@ -174,11 +174,11 @@ export default function TiposEquipamento() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="cd_tipo">Código *</Label>
+              <Label htmlFor="cd_tipo_equipamento">Código *</Label>
               <Input
-                id="cd_tipo"
-                value={formData.cd_tipo}
-                onChange={(e) => setFormData({ ...formData, cd_tipo: e.target.value })}
+                id="cd_tipo_equipamento"
+                value={formData.cd_tipo_equipamento}
+                onChange={(e) => setFormData({ ...formData, cd_tipo_equipamento: e.target.value })}
                 required
               />
             </div>
