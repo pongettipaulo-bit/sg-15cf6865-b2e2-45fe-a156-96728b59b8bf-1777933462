@@ -1,57 +1,67 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthProvider";
+import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-type Props = {
+type ModalAssumirProps = {
   evento: {
     id: string;
     nm_tipo_evento: string;
-    id_tipo_evento?: string;
-  };
+    id_tipo_evento: string;
+  } | null;
   open: boolean;
   onClose: () => void;
 };
 
-export function ModalAssumir({ evento, open, onClose }: Props) {
+type Motivo = {
+  id: number;
+  nm_motivo: string;
+  id_tipo_evento: string;
+};
+
+export function ModalAssumir({ evento, open, onClose }: ModalAssumirProps) {
   const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
   const [motivoId, setMotivoId] = useState("");
   const [observacao, setObservacao] = useState("");
 
-  const { data: motivos } = useQuery({
-    queryKey: ["motivos-assumir", evento.id_tipo_evento],
+  const { data: motivos, isLoading: loadingMotivos } = useQuery({
+    queryKey: ["motivos", evento?.id_tipo_evento],
     queryFn: async () => {
+      if (!evento?.id_tipo_evento) return [];
+
       const { data, error } = await supabase
         .from("dim_motivo_evento")
-        .select("id, nm_motivo")
-        .eq("fg_ativo", true)
+        .select("*")
+        .eq("id_tipo_evento", evento.id_tipo_evento)
+        .eq("ativo", true)
         .order("nm_motivo");
 
       if (error) throw error;
-      return data;
+      return data as Motivo[];
     },
-    enabled: open,
+    enabled: !!evento?.id_tipo_evento && open,
   });
 
   const assumirMutation = useMutation({
     mutationFn: async () => {
+      if (!evento || !profile) return;
+
       const { error } = await supabase
         .from("fila_evento")
         .update({
           status: "em_andamento",
           dt_inicio: new Date().toISOString(),
-          id_usuario_inicio: profile?.id,
-          observacao_inicio: `Assumido por ${profile?.nm_usuario}`,
-          id_motivo_inicio: motivoId,
+          id_usuario_inicio: profile.id,
+          observacao_inicio: observacao || `Assumido por ${profile.nm_usuario}`,
         })
         .eq("id", evento.id);
 
@@ -59,18 +69,11 @@ export function ModalAssumir({ evento, open, onClose }: Props) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["eventos"] });
-      toast({
-        title: "Evento assumido",
-        description: "Você está trabalhando neste evento.",
-      });
+      toast({ title: "Evento assumido com sucesso" });
       handleClose();
     },
-    onError: (error: any) => {
-      toast({
-        title: "Erro ao assumir evento",
-        description: error.message,
-        variant: "destructive",
-      });
+    onError: () => {
+      toast({ title: "Erro ao assumir evento", variant: "destructive" });
     },
   });
 
@@ -83,49 +86,56 @@ export function ModalAssumir({ evento, open, onClose }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!motivoId) {
-      toast({
-        title: "Motivo obrigatório",
-        description: "Selecione o motivo para assumir este evento.",
-        variant: "destructive",
-      });
+      toast({ title: "Selecione um motivo", variant: "destructive" });
       return;
     }
     assumirMutation.mutate();
   };
 
+  if (!evento) return null;
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Assumir Evento</DialogTitle>
-          <DialogDescription>
-            {evento.nm_tipo_evento}
-          </DialogDescription>
+          <DialogDescription>{evento.nm_tipo_evento}</DialogDescription>
         </DialogHeader>
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
+          <div>
             <Label htmlFor="motivo">Motivo *</Label>
-            <Select value={motivoId} onValueChange={setMotivoId}>
+            <Select value={motivoId} onValueChange={setMotivoId} required>
               <SelectTrigger id="motivo">
                 <SelectValue placeholder="Selecione o motivo" />
               </SelectTrigger>
               <SelectContent>
-                {motivos?.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.nm_motivo}
+                {loadingMotivos ? (
+                  <SelectItem value="loading" disabled>
+                    Carregando motivos...
                   </SelectItem>
-                ))}
+                ) : motivos && motivos.length > 0 ? (
+                  motivos.map((motivo) => (
+                    <SelectItem key={motivo.id} value={String(motivo.id)}>
+                      {motivo.nm_motivo}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="empty" disabled>
+                    Nenhum motivo cadastrado para este tipo de evento
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="observacao">Observação</Label>
-              <span className="text-xs text-muted-foreground">
+          <div>
+            <Label htmlFor="observacao">
+              Observação
+              <span className="text-xs text-muted-foreground ml-2">
                 {observacao.length}/280
               </span>
-            </div>
+            </Label>
             <Textarea
               id="observacao"
               value={observacao}
@@ -139,9 +149,8 @@ export function ModalAssumir({ evento, open, onClose }: Props) {
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={assumirMutation.isPending}>
-              {assumirMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Assumir
+            <Button type="submit" disabled={assumirMutation.isPending || !motivoId}>
+              {assumirMutation.isPending ? "Assumindo..." : "Assumir"}
             </Button>
           </DialogFooter>
         </form>
