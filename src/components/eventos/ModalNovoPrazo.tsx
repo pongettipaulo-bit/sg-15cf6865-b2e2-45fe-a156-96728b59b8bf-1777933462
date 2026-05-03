@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 
 type Evento = {
   id: string;
-  id_tipo_evento: string;
+  id_tipo_evento: number;
   nm_tipo_evento: string;
   criticidade: string;
   status: string;

@@ -10,17 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 type Evento = {
   id: string;
-  id_tipo_evento: string;
+  id_tipo_evento: number;
   nm_tipo_evento: string;
-  criticidade: string;
-  status: string;
-  dt_prazo: string;
-  prazo_vencido: boolean;
-  id_equipamento: string;
-  nm_equipamento: string;
-  nivel_escalonamento: number;
-  vl_tempo_duracao_max: number;
-  criado_em: string;
+  [key: string]: any;
 };
 
 type Motivo = {
