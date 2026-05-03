@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { TrendingUp, TrendingDown, AlertCircle, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 
 const STATUS_COLORS = {
   pendente: "hsl(var(--muted-foreground))",
@@ -15,9 +17,81 @@ const STATUS_COLORS = {
 const CHART_COLORS = ["#185FA5", "#3B6D11", "#854F0B", "#791F1F", "#534AB7"];
 
 export default function Dashboard() {
-  const { data: metrics, isLoading } = useDashboardMetrics();
+  const { data: metricas } = useQuery({
+    queryKey: ["dashboard-metricas"],
+    queryFn: async () => {
+      // Eventos abertos da view
+      const { data: eventosAbertos } = await supabase
+        .from("vw_fila_evento_aberta")
+        .select("id, status, criticidade, id_equipamento, nm_equipamento, nm_categoria");
 
-  if (isLoading || !metrics) {
+      const total = eventosAbertos?.length || 0;
+      const pendente = eventosAbertos?.filter((e) => e.status === "pendente").length || 0;
+      const em_andamento = eventosAbertos?.filter((e) => e.status === "em_andamento").length || 0;
+      const escalado = eventosAbertos?.filter((e) => e.status === "escalado").length || 0;
+      const atrasado = eventosAbertos?.filter((e) => e.status === "atrasado").length || 0;
+
+      // Eventos encerrados hoje
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      const { count: encerradosHoje } = await supabase
+        .from("fila_evento")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "encerrado")
+        .gte("dt_fim", hoje.toISOString());
+
+      // Eventos encerrados ontem
+      const ontem = new Date(hoje);
+      ontem.setDate(ontem.getDate() - 1);
+      const { count: encerradosOntem } = await supabase
+        .from("fila_evento")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "encerrado")
+        .gte("dt_fim", ontem.toISOString())
+        .lt("dt_fim", hoje.toISOString());
+
+      // Top 5 equipamentos com mais eventos (usando id_equipamento da view)
+      const equipamentosComEventos = eventosAbertos?.reduce((acc, evento) => {
+        const key = evento.id_equipamento;
+        if (!acc[key]) {
+          acc[key] = { id_equipamento: key, nm_equipamento: evento.nm_equipamento, count: 0 };
+        }
+        acc[key].count++;
+        return acc;
+      }, {} as Record<string, { id_equipamento: string; nm_equipamento: string; count: number }>);
+
+      const topEquipamentos = Object.values(equipamentosComEventos || {})
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+      // Eventos por categoria
+      const eventosPorCategoria = eventosAbertos?.reduce((acc, evento) => {
+        const cat = evento.nm_categoria || "Sem categoria";
+        acc[cat] = (acc[cat] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const categorias = Object.entries(eventosPorCategoria || {}).map(([name, value]) => ({
+        name,
+        value,
+      }));
+
+      return {
+        total,
+        pendente,
+        em_andamento,
+        escalado,
+        atrasado,
+        encerradosHoje: encerradosHoje || 0,
+        encerradosOntem: encerradosOntem || 0,
+        topEquipamentos,
+        categorias,
+      };
+    },
+    refetchInterval: 30000,
+  });
+
+  if (!metricas) {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-semibold">Dashboard</h1>
@@ -37,9 +111,9 @@ export default function Dashboard() {
     );
   }
 
-  const comparativo = metrics.encerradosHoje - metrics.encerradosOntem;
-  const percentualComparativo = metrics.encerradosOntem > 0
-    ? ((comparativo / metrics.encerradosOntem) * 100).toFixed(1)
+  const comparativo = metricas.encerradosHoje - metricas.encerradosOntem;
+  const percentualComparativo = metricas.encerradosOntem > 0
+    ? ((comparativo / metricas.encerradosOntem) * 100).toFixed(1)
     : "0";
 
   return (
@@ -62,7 +136,7 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-5xl font-semibold text-primary">{metrics.totalAbertos}</p>
+            <p className="text-5xl font-semibold text-primary">{metricas.total}</p>
           </CardContent>
         </Card>
 
@@ -75,7 +149,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold text-muted-foreground">
-              {metrics.pendentes}
+              {metricas.pendente}
             </p>
           </CardContent>
         </Card>
@@ -89,7 +163,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold text-primary">
-              {metrics.emAndamento}
+              {metricas.em_andamento}
             </p>
           </CardContent>
         </Card>
@@ -103,7 +177,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold" style={{ color: "#534AB7" }}>
-              {metrics.escalados}
+              {metricas.escalado}
             </p>
           </CardContent>
         </Card>
@@ -118,7 +192,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold text-destructive">
-              {metrics.atrasados}
+              {metricas.atrasado}
             </p>
           </CardContent>
         </Card>
@@ -134,7 +208,7 @@ export default function Dashboard() {
           <CardContent>
             <div className="flex items-baseline gap-3">
               <p className="text-3xl font-semibold text-success">
-                {metrics.encerradosHoje}
+                {metricas.encerradosHoje}
               </p>
               <div className="flex items-center gap-1 text-sm">
                 {comparativo >= 0 ? (
@@ -162,9 +236,9 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {metrics.topEquipamentos.length > 0 ? (
+            {metricas.topEquipamentos.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={metrics.topEquipamentos} layout="vertical">
+                <BarChart data={metricas.topEquipamentos} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis type="number" />
                   <YAxis dataKey="equipamento" type="category" width={120} fontSize={12} />
@@ -174,7 +248,7 @@ export default function Dashboard() {
                       border: "1px solid hsl(var(--border))" 
                     }}
                   />
-                  <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -193,22 +267,22 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {metrics.eventosPorCategoria.length > 0 ? (
+            {metricas.categorias.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={metrics.eventosPorCategoria}
+                    data={metricas.categorias}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
                     label={(entry: any) => 
-                      `${entry.categoria.substring(0, 15)} (${(entry.percent * 100).toFixed(0)}%)`
+                      `${entry.name.substring(0, 15)} (${(entry.value * 100).toFixed(0)}%)`
                     }
                     outerRadius={100}
                     fill="#8884d8"
-                    dataKey="total"
+                    dataKey="value"
                   >
-                    {metrics.eventosPorCategoria.map((entry, index) => (
+                    {metricas.categorias.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                   </Pie>
@@ -238,9 +312,9 @@ export default function Dashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {metrics.timeline24h.length > 0 ? (
+          {metricas.timeline24h.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={metrics.timeline24h}>
+              <LineChart data={metricas.timeline24h}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="hora" />
                 <YAxis />
