@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, Plus, Download, FileText, Search, Filter } from "lucide-react";
+import { AlertCircle, Plus, Download, FileText, Search, Filter, Clock, AlertTriangle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useToast } from "@/hooks/use-toast";
 import { ModalAssumir } from "@/components/eventos/ModalAssumir";
 import { ModalEscalar } from "@/components/eventos/ModalEscalar";
 import { ModalEncerrar } from "@/components/eventos/ModalEncerrar";
@@ -18,24 +20,24 @@ import { ModalNovoPrazo } from "@/components/eventos/ModalNovoPrazo";
 
 type Evento = {
   id: string;
-  id_tipo_evento: string;
+  id_tipo_evento: number;
   nm_tipo_evento: string;
   criticidade: string;
   status: string;
-  dt_prazo: string;
-  dt_fim?: string;
+  dt_prazo: string | null;
+  dt_fim: string | null;
   prazo_vencido: boolean;
   id_equipamento: string;
   nm_equipamento: string;
   nm_operacao?: string;
-  nm_categoria?: string;
-  nm_subcategoria?: string;
+  nm_categoria: string;
+  nm_subcategoria: string;
   nivel_escalonamento: number;
   vl_tempo_duracao_max: number;
   criado_em: string;
   observacao_inicio?: string;
   observacao_fim?: string;
-  id_motivo?: string;
+  id_motivo?: number;
   nm_motivo?: string;
 };
 
@@ -55,6 +57,9 @@ const STATUS_COLUMNS = [
 ];
 
 export default function Eventos() {
+  const { profile } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"kanban" | "lista" | "equipamento">("kanban");
   const [searchTerm, setSearchTerm] = useState("");
   const [criticidadeFilter, setCriticidadeFilter] = useState<string>("todas");
