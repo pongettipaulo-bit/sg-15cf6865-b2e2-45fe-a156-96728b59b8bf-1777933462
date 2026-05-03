@@ -56,6 +56,7 @@ export default function Equipamentos() {
           cd_equipamento,
           nm_equipamento,
           ativo,
+          fg_online,
           grupo:dim_grupo_equipamento(id, cd_grupo_equipamento, nm_grupo_equipamento),
           tipo:dim_tipo_equipamento(id, cd_tipo_equipamento, nm_tipo_equipamento),
           unidade:dim_unidade(id, cd_unidade, nm_unidade)
@@ -71,15 +72,30 @@ export default function Equipamentos() {
       console.log("Equipamentos carregados:", data?.length || 0);
       console.log("Exemplo de equipamento:", data?.[0]);
 
-      return data.map((e: any) => ({
-        id: e.id,
-        cd_equipamento: e.cd_equipamento,
-        nm_equipamento: e.nm_equipamento,
-        ativo: e.ativo,
-        nm_grupo: e.grupo?.nm_grupo_equipamento || "—",
-        nm_tipo: e.tipo?.nm_tipo_equipamento || "—",
-        nm_unidade: e.unidade?.nm_unidade || "—",
-      }));
+      // Get event counts for each equipment
+      const equipamentosComEventos = await Promise.all(
+        data.map(async (e: any) => {
+          const { count } = await supabase
+            .from("fila_evento")
+            .select("*", { count: "exact", head: true })
+            .eq("id_equipamento", e.id)
+            .in("status", ["pendente", "em_andamento", "escalado", "atrasado"]);
+
+          return {
+            id: e.id,
+            cd_equipamento: e.cd_equipamento,
+            nm_equipamento: e.nm_equipamento,
+            ativo: e.ativo,
+            fg_online: e.fg_online || false,
+            total_eventos_abertos: count || 0,
+            nm_grupo: e.grupo?.nm_grupo_equipamento || "—",
+            nm_tipo: e.tipo?.nm_tipo_equipamento || "—",
+            nm_unidade: e.unidade?.nm_unidade || "—",
+          };
+        })
+      );
+
+      return equipamentosComEventos;
     },
   });
 
