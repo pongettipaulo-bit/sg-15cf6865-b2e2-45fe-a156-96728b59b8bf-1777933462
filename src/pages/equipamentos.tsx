@@ -28,6 +28,7 @@ type HistoricoEvento = {
   criado_em: string;
   dt_fim: string;
   observacao_fim: string;
+  tp_encerramento?: string;
   duracao_minutos: number;
 };
 
@@ -144,15 +145,23 @@ export default function Equipamentos() {
         throw error;
       }
 
-      return data.map((e: any) => ({
-        id: e.id,
-        nm_tipo_evento: e.tipo_evento?.nm_tipo_evento || "",
-        criticidade: e.tipo_evento?.criticidade || "media",
-        criado_em: e.criado_em,
-        dt_fim: e.dt_fim,
-        observacao_fim: e.observacao_fim,
-        tp_encerramento: e.tp_encerramento,
-      }));
+      return data.map((e: any) => {
+        const inicio = new Date(e.criado_em);
+        const fim = new Date(e.dt_fim);
+        const duracaoMs = fim.getTime() - inicio.getTime();
+        const duracaoMinutos = Math.floor(duracaoMs / 1000 / 60);
+
+        return {
+          id: e.id,
+          nm_tipo_evento: e.tipo_evento?.nm_tipo_evento || "",
+          criticidade: e.tipo_evento?.criticidade || "media",
+          criado_em: e.criado_em,
+          dt_fim: e.dt_fim,
+          observacao_fim: e.observacao_fim,
+          tp_encerramento: e.tp_encerramento,
+          duracao_minutos: duracaoMinutos,
+        };
+      });
     },
     enabled: !!equipamentoSelecionado,
   });
