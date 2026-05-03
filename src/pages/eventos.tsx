@@ -23,9 +23,13 @@ type Evento = {
   criticidade: string;
   status: string;
   dt_prazo: string;
+  dt_fim?: string;
   prazo_vencido: boolean;
   id_equipamento: string;
   nm_equipamento: string;
+  nm_operacao?: string;
+  nm_categoria?: string;
+  nm_subcategoria?: string;
   nivel_escalonamento: number;
   vl_tempo_duracao_max: number;
   criado_em: string;
