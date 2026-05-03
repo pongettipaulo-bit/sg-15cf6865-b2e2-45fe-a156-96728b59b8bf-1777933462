@@ -168,6 +168,13 @@ export default function Relatorios() {
     },
   });
 
+  const dadosPorCriticidade = [
+    { name: "Crítica", value: data?.eventos?.filter((e) => (e.criticidade || "").toLowerCase() === "critica").length || 0 },
+    { name: "Alta", value: data?.eventos?.filter((e) => (e.criticidade || "").toLowerCase() === "alta").length || 0 },
+    { name: "Média", value: data?.eventos?.filter((e) => (e.criticidade || "").toLowerCase() === "media").length || 0 },
+    { name: "Baixa", value: data?.eventos?.filter((e) => (e.criticidade || "").toLowerCase() === "baixa").length || 0 },
+  ];
+
   const exportarCSV = () => {
     if (!data || !data.eventos) return;
 
@@ -489,16 +496,16 @@ export default function Relatorios() {
                     <TableCell>
                       <span
                         className={`text-xs font-medium px-2 py-1 rounded ${
-                          evento.criticidade === "critica"
+                          (evento.criticidade || "media") === "critica"
                             ? "bg-destructive-bg text-destructive"
-                            : evento.criticidade === "alta"
+                            : (evento.criticidade || "media") === "alta"
                             ? "bg-warning-bg text-warning-dark"
-                            : evento.criticidade === "media"
+                            : (evento.criticidade || "media") === "media"
                             ? "bg-primary-light text-primary-dark"
                             : "bg-success-bg text-success-dark"
                         }`}
                       >
-                        {evento.criticidade.toUpperCase()}
+                        {(evento.criticidade || "media").toUpperCase()}
                       </span>
                     </TableCell>
                     <TableCell className="text-sm">{evento.nm_equipamento}</TableCell>
