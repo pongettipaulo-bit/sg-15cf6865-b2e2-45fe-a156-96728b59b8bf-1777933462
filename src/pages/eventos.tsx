@@ -87,7 +87,7 @@ export default function Eventos() {
           categoria:dim_tipo_evento(id_categoria),
           subcategoria:dim_tipo_evento(id_subcategoria)
         `)
-        .in("status", ["pendente", "em_andamento", "escalado", "atrasado"])
+        .in("status", ["pendente", "em_andamento", "escalado", "atrasado", "encerrado"])
         .order("criado_em", { ascending: false });
 
       if (error) {
@@ -150,18 +150,20 @@ export default function Eventos() {
     return matchSearch && matchCriticidade && matchCategoria;
   });
 
-  const eventosPorStatus = STATUS_COLUMNS.reduce((acc, col) => {
-    acc[col.key] = filteredEventos?.filter((e) => {
-      if (col.key === "encerrado") {
-        // Encerrados hoje
-        const hoje = new Date().toISOString().split("T")[0];
-        const dtFim = e.dt_fim?.split("T")[0];
-        return e.status === "encerrado" && dtFim === hoje;
-      }
-      return e.status === col.key;
-    }) || [];
-    return acc;
-  }, {} as Record<string, Evento[]>);
+  const eventosPorStatus = {
+    total: eventos?.length || 0,
+    pendente: eventos?.filter((e) => e.status === "pendente").length || 0,
+    em_andamento: eventos?.filter((e) => e.status === "em_andamento").length || 0,
+    escalado: eventos?.filter((e) => e.status === "escalado").length || 0,
+    atrasado: eventos?.filter((e) => e.status === "atrasado").length || 0,
+    encerrado: eventos?.filter((e) => {
+      if (e.status !== "encerrado") return false;
+      if (!e.dt_fim) return false;
+      const hoje = new Date().toISOString().split("T")[0];
+      const dataFim = new Date(e.dt_fim).toISOString().split("T")[0];
+      return dataFim === hoje;
+    }).length || 0,
+  };
 
   const totalAbertos = eventos?.filter((e) => e.status !== "encerrado").length || 0;
   const totalPendentes = eventosPorStatus.pendente?.length || 0;
@@ -357,164 +359,27 @@ export default function Eventos() {
 
         <TabsContent value="kanban" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {STATUS_COLUMNS.map((column) => (
-              <div key={column.key} className="space-y-3">
-                {/* Header da coluna */}
-                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <h3 className={`font-semibold ${column.color}`}>{column.label}</h3>
-                  <Badge variant="outline">{eventosPorStatus[column.key]?.length || 0}</Badge>
-                </div>
-
-                {/* Cards de eventos */}
-                <div className="space-y-3 min-h-[400px]">
-                  {eventosPorStatus[column.key]?.map((evento) => {
-                    const criticidadeStyle = CRITICIDADE_COLORS[evento.criticidade as keyof typeof CRITICIDADE_COLORS];
-                    const tempoDecorrido = formatDistanceToNow(new Date(evento.criado_em), {
-                      addSuffix: true,
-                      locale: ptBR,
-                    });
-                    const duracao = evento.vl_tempo_duracao_max;
-
-                    return (
-                      <Card
-                        key={evento.id}
-                        className={`hover:shadow-md transition-shadow ${
-                          evento.status === "atrasado" ? "border-l-4 border-l-destructive" : ""
-                        } ${evento.status === "encerrado" ? "opacity-60" : ""}`}
-                      >
-                        <CardContent className="p-4 space-y-3">
-                          {/* Badge criticidade */}
-                          <Badge className={`${criticidadeStyle.bg} ${criticidadeStyle.text} border-0`}>
-                            {evento.criticidade.toUpperCase()}
-                          </Badge>
-
-                          {/* Tipo de evento */}
-                          <h4 className="font-semibold text-sm leading-tight">
-                            {evento.nm_tipo_evento}
-                          </h4>
-
-                          {/* Equipamento e operação */}
-                          <p className="text-xs text-muted-foreground">
-                            {evento.nm_equipamento} — {evento.nm_operacao}
-                          </p>
-
-                          {/* Tempo e duração */}
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">{tempoDecorrido}</span>
-                            <span className={`font-medium ${getDuracaoColor(duracao)}`}>
-                              {formatDuracao(duracao)}
-                            </span>
-                          </div>
-
-                          {/* Categoria */}
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              {evento.nm_categoria}
-                            </Badge>
-                            {evento.nm_subcategoria && (
-                              <Badge variant="outline" className="text-xs">
-                                {evento.nm_subcategoria}
-                              </Badge>
-                            )}
-                          </div>
-
-                          {/* Botões de ação */}
-                          {evento.status === "pendente" && (
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => abrirModalAssumir(evento)}
-                              >
-                                Assumir
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  /* TODO: implementar sem tratativa */
-                                  toast({ title: "Funcionalidade em desenvolvimento" });
-                                }}
-                              >
-                                Sem tratativa
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-destructive hover:text-destructive"
-                                onClick={() => {
-                                  /* TODO: implementar cancelar */
-                                  toast({ title: "Funcionalidade em desenvolvimento" });
-                                }}
-                              >
-                                Cancelar
-                              </Button>
-                            </div>
-                          )}
-                          {evento.status === "em_andamento" && (
-                            <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="flex-1"
-                                onClick={() => abrirModalEscalar(evento)}
-                              >
-                                Escalar
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => abrirModalEncerrar(evento)}
-                              >
-                                Encerrar
-                              </Button>
-                            </div>
-                          )}
-                          {evento.status === "escalado" && (
-                            <div className="space-y-2">
-                              {evento.dt_prazo && (
-                                <p className="text-xs text-muted-foreground">
-                                  Prazo: {formatDistanceToNow(new Date(evento.dt_prazo), {
-                                    addSuffix: true,
-                                    locale: ptBR,
-                                  })}
-                                </p>
-                              )}
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => abrirModalEncerrar(evento)}
-                              >
-                                Encerrar
-                              </Button>
-                            </div>
-                          )}
-                          {evento.status === "atrasado" && (
-                            <Button 
-                              size="sm" 
-                              variant="destructive" 
-                              className="w-full"
-                              onClick={() => abrirModalNovoPrazo(evento)}
-                            >
-                              Novo Prazo
-                            </Button>
-                          )}
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-
-                  {/* Empty state */}
-                  {eventosPorStatus[column.key]?.length === 0 && (
-                    <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg">
-                      <AlertCircle className="w-8 h-8 text-muted-foreground mb-2" />
-                      <p className="text-sm text-muted-foreground text-center">
-                        Nenhum evento {column.label.toLowerCase()}
-                      </p>
-                    </div>
-                  )}
-                </div>
+            {/* Coluna Encerrado */}
+            <div className="flex-1 min-w-[280px]">
+              <div className="bg-muted/50 p-3 rounded-t-lg border-b-2 border-green-600">
+                <h3 className="font-semibold text-sm">
+                  Encerrado Hoje ({eventosPorStatus.encerrado})
+                </h3>
               </div>
-            ))}
+              <div className="space-y-3 p-3 min-h-[200px]">
+                {filteredEventos
+                  .filter((e) => {
+                    if (e.status !== "encerrado") return false;
+                    if (!e.dt_fim) return false;
+                    const hoje = new Date().toISOString().split("T")[0];
+                    const dataFim = new Date(e.dt_fim).toISOString().split("T")[0];
+                    return dataFim === hoje;
+                  })
+                  .map((evento) => (
+                    <EventoCard key={evento.id} evento={evento} />
+                  ))}
+              </div>
+            </div>
           </div>
         </TabsContent>
 
