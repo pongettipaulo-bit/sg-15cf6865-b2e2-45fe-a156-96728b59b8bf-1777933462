@@ -68,7 +68,7 @@ export default function Eventos() {
   const [modalNovoPrazo, setModalNovoPrazo] = useState<Evento | null>(null);
 
   const { data: eventos, isLoading } = useQuery({
-    queryKey: ["eventos"],
+    queryKey: ["eventos-abertos"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vw_fila_evento_aberta")
@@ -76,9 +76,12 @@ export default function Eventos() {
         .order("criado_em", { ascending: false });
 
       if (error) throw error;
+      
+      console.log("Eventos carregados - primeiro evento:", data?.[0]);
+      
       return data as Evento[];
     },
-    refetchInterval: 10000, // Atualiza a cada 10s
+    refetchInterval: 30000,
   });
 
   const { data: categorias } = useQuery({
