@@ -71,8 +71,17 @@ export default function Eventos() {
     queryKey: ["eventos-abertos"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("vw_fila_evento_aberta")
-        .select("*")
+        .from("fila_evento")
+        .select(`
+          *,
+          tipo_evento:dim_tipo_evento(nm_tipo_evento, criticidade),
+          equipamento:dim_equipamento(nm_equipamento),
+          operacao:dim_operacao(nm_operacao),
+          motivo:dim_motivo_evento(nm_motivo),
+          categoria:dim_tipo_evento(id_categoria),
+          subcategoria:dim_tipo_evento(id_subcategoria)
+        `)
+        .in("status", ["pendente", "em_andamento", "escalado", "atrasado"])
         .order("criado_em", { ascending: false });
 
       if (error) {
@@ -81,9 +90,31 @@ export default function Eventos() {
       }
       
       console.log("Eventos carregados:", data?.length, "eventos");
-      console.log("Primeiro evento - id_tipo_evento:", data?.[0]?.id_tipo_evento);
+      console.log("Primeiro evento completo:", data?.[0]);
       
-      return data as Evento[];
+      // Map to match expected Evento type
+      return data.map((e: any) => ({
+        id: e.id,
+        id_tipo_evento: e.id_tipo_evento,
+        nm_tipo_evento: e.tipo_evento?.nm_tipo_evento || "",
+        criticidade: e.tipo_evento?.criticidade || "media",
+        status: e.status,
+        dt_prazo: e.dt_prazo,
+        dt_fim: e.dt_fim,
+        prazo_vencido: e.prazo_vencido || false,
+        id_equipamento: e.id_equipamento,
+        nm_equipamento: e.equipamento?.nm_equipamento || "",
+        nm_operacao: e.operacao?.nm_operacao,
+        nm_categoria: "",
+        nm_subcategoria: "",
+        nivel_escalonamento: e.nivel_escalonamento || 0,
+        vl_tempo_duracao_max: e.vl_tempo_duracao_max || 0,
+        criado_em: e.criado_em,
+        observacao_inicio: e.observacao_inicio,
+        observacao_fim: e.observacao_fim,
+        id_motivo: e.id_motivo,
+        nm_motivo: e.motivo?.nm_motivo,
+      })) as Evento[];
     },
     refetchInterval: 30000,
   });
