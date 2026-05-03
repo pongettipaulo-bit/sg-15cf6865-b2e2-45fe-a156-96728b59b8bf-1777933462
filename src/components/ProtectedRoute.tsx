@@ -14,14 +14,14 @@ export function ProtectedRoute({
   requiredPermission,
 }: ProtectedRouteProps) {
   const router = useRouter();
-  const { session, profile, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
 
   useEffect(() => {
     // Wait for auth to load
     if (loading) return;
 
     // Not authenticated - redirect to login
-    if (!session) {
+    if (!user) {
       router.push("/login");
       return;
     }
@@ -40,7 +40,7 @@ export function ProtectedRoute({
       // TODO: Implement permission check with cfg_permissao_perfil
       // For now, allow access
     }
-  }, [session, profile, loading, router, allowedProfiles, requiredPermission]);
+  }, [user, profile, loading, router, allowedProfiles, requiredPermission]);
 
   // Show loading state
   if (loading) {
@@ -52,7 +52,7 @@ export function ProtectedRoute({
   }
 
   // Show nothing while redirecting
-  if (!session) return null;
+  if (!user) return null;
 
   // Admin bypasses all checks
   if (profile?.perfil === "admin") {

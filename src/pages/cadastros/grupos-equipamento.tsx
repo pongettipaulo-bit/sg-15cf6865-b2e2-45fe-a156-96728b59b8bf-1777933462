@@ -20,16 +20,8 @@ type Grupo = {
 
 export default function GruposEquipamento() {
   const { profile } = useAuth();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  // Admin has unrestricted access
-  if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-muted-foreground">Sem permissão para acessar esta página.</p>
-      </div>
-    );
-  }
 
   const [searchTerm, setSearchTerm] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -70,6 +62,13 @@ export default function GruposEquipamento() {
     },
   });
 
+  const filteredGrupos = grupos?.filter((g) => {
+    if (!g) return false;
+    return searchTerm === "" || 
+      String(g.cd_grupo ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(g.nm_grupo ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+  }) ?? [];
+
   const abrirModal = (grupo?: Grupo) => {
     if (grupo) {
       setEditando(grupo);
@@ -91,12 +90,14 @@ export default function GruposEquipamento() {
     salvar.mutate(formData);
   };
 
-  const filteredGrupos = grupos?.filter((g) => {
-    if (!g) return false;
-    return searchTerm === "" || 
-      String(g.cd_grupo ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(g.nm_grupo ?? "").toLowerCase().includes(searchTerm.toLowerCase());
-  }) ?? [];
+  // Admin has unrestricted access
+  if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-muted-foreground">Sem permissão para acessar esta página.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
