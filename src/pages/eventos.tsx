@@ -72,10 +72,13 @@ export default function Eventos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vw_fila_evento_aberta")
-        .select("*")
+        .select("*, id_tipo_evento")
         .order("criado_em", { ascending: false });
 
       if (error) throw error;
+      
+      console.log("Eventos carregados - verificando id_tipo_evento:", data?.[0]?.id_tipo_evento);
+      
       return data as Evento[];
     },
     refetchInterval: 30000,

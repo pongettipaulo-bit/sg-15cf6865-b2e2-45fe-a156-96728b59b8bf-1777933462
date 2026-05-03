@@ -36,16 +36,26 @@ export function ModalAssumir({ evento, open, onClose }: ModalAssumirProps) {
   const { data: motivos, isLoading: loadingMotivos } = useQuery({
     queryKey: ["motivos-evento", evento?.id_tipo_evento],
     queryFn: async () => {
-      if (!evento?.id_tipo_evento) return [];
+      if (!evento?.id_tipo_evento) {
+        console.log("ModalAssumir: id_tipo_evento está vazio ou undefined", evento);
+        return [];
+      }
+
+      console.log("ModalAssumir: Buscando motivos para id_tipo_evento:", evento.id_tipo_evento, typeof evento.id_tipo_evento);
 
       const { data, error } = await supabase
         .from("dim_motivo_evento")
-        .select("id, nm_motivo")
+        .select("id, nm_motivo, id_tipo_evento")
         .eq("id_tipo_evento", evento.id_tipo_evento)
         .eq("ativo", true)
         .order("nm_motivo");
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao buscar motivos:", error);
+        throw error;
+      }
+
+      console.log("ModalAssumir: Motivos retornados:", data);
       return data as Motivo[];
     },
     enabled: !!evento?.id_tipo_evento && open,
