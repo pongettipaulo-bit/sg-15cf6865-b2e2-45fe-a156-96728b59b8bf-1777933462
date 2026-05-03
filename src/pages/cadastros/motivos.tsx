@@ -40,16 +40,6 @@ export default function Motivos() {
     fg_ativo: true,
   });
 
-  // Admin has unrestricted access
-  if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-muted-foreground">Sem permissão para acessar esta página.</p>
-      </div>
-    );
-  }
-
-  // Buscar motivos com join do tipo de evento
   const { data: motivos, isLoading } = useQuery({
     queryKey: ["motivos"],
     queryFn: async () => {
@@ -73,7 +63,6 @@ export default function Motivos() {
     },
   });
 
-  // Buscar tipos de evento para o select
   const { data: tiposEvento } = useQuery({
     queryKey: ["tipos-evento-select"],
     queryFn: async () => {
@@ -88,7 +77,6 @@ export default function Motivos() {
     },
   });
 
-  // Criar motivo
   const createMutation = useMutation({
     mutationFn: async (newMotivo: typeof formData) => {
       const { error } = await supabase.from("dim_motivo_evento").insert([newMotivo]);
@@ -105,7 +93,6 @@ export default function Motivos() {
     },
   });
 
-  // Atualizar motivo
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<typeof formData> }) => {
       const { error } = await supabase.from("dim_motivo_evento").update(updates).eq("id", id);
@@ -122,7 +109,6 @@ export default function Motivos() {
     },
   });
 
-  // Toggle ativo/inativo
   const toggleAtivoMutation = useMutation({
     mutationFn: async ({ id, fg_ativo }: { id: string; fg_ativo: boolean }) => {
       const { error } = await supabase.from("dim_motivo_evento").update({ fg_ativo }).eq("id", id);
@@ -169,6 +155,15 @@ export default function Motivos() {
       createMutation.mutate(formData);
     }
   };
+
+  // Admin has unrestricted access
+  if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-muted-foreground">Sem permissão para acessar esta página.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 ml-64">

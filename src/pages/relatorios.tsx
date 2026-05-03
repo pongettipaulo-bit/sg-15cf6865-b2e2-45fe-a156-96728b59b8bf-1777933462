@@ -230,7 +230,7 @@ export default function Relatorios() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Select value={periodo} onValueChange={setPeriodo}>
+          <Select value={periodo} onValueChange={(value) => setPeriodo(value as "hoje" | "7d" | "30d" | "custom")}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>

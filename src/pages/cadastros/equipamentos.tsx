@@ -32,15 +32,6 @@ export default function Equipamentos() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Admin has unrestricted access
-  if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-muted-foreground">Sem permissão para acessar esta página.</p>
-      </div>
-    );
-  }
-
   const [searchTerm, setSearchTerm] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<Equipamento | null>(null);
@@ -147,6 +138,13 @@ export default function Equipamentos() {
     },
   });
 
+  const filteredEquipamentos = equipamentos?.filter((e) => {
+    if (!e) return false;
+    return searchTerm === "" || 
+      String(e.cd_equipamento ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(e.nm_equipamento ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+  }) ?? [];
+
   const abrirModal = (equip?: Equipamento) => {
     if (equip) {
       setEditando(equip);
@@ -180,12 +178,14 @@ export default function Equipamentos() {
     salvar.mutate(formData);
   };
 
-  const filteredEquipamentos = equipamentos?.filter((e) => {
-    if (!e) return false;
-    return searchTerm === "" || 
-      String(e.cd_equipamento ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(e.nm_equipamento ?? "").toLowerCase().includes(searchTerm.toLowerCase());
-  }) ?? [];
+  // Admin has unrestricted access
+  if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-muted-foreground">Sem permissão para acessar esta página.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
