@@ -76,9 +76,6 @@ export default function Eventos() {
         .order("criado_em", { ascending: false });
 
       if (error) throw error;
-      
-      console.log("Eventos carregados - primeiro evento:", data?.[0]);
-      
       return data as Evento[];
     },
     refetchInterval: 30000,

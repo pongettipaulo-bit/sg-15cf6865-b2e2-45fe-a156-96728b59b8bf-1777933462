@@ -18,8 +18,8 @@ type Equipamento = {
   id: string;
   cd_equipamento: string;
   nm_equipamento: string;
-  id_grupo: string;
-  id_tipo: string;
+  id_grupo_equipamento: string;
+  id_tipo_equipamento: string;
   id_unidade: string;
   ativo: boolean;
   grupo?: { nm_grupo_equipamento: string };
@@ -48,8 +48,8 @@ export default function Equipamentos() {
   const [formData, setFormData] = useState({
     cd_equipamento: "",
     nm_equipamento: "",
-    id_grupo: "",
-    id_tipo: "",
+    id_grupo_equipamento: "",
+    id_tipo_equipamento: "",
     id_unidade: "",
   });
 
@@ -157,8 +157,8 @@ export default function Equipamentos() {
       setFormData({
         cd_equipamento: equip.cd_equipamento,
         nm_equipamento: equip.nm_equipamento,
-        id_grupo: equip.id_grupo,
-        id_tipo: equip.id_tipo,
+        id_grupo_equipamento: equip.id_grupo_equipamento,
+        id_tipo_equipamento: equip.id_tipo_equipamento,
         id_unidade: equip.id_unidade,
       });
     } else {
@@ -166,8 +166,8 @@ export default function Equipamentos() {
       setFormData({
         cd_equipamento: "",
         nm_equipamento: "",
-        id_grupo: "",
-        id_tipo: "",
+        id_grupo_equipamento: "",
+        id_tipo_equipamento: "",
         id_unidade: "",
       });
     }
@@ -301,10 +301,10 @@ export default function Equipamentos() {
               />
             </div>
             <div>
-              <Label htmlFor="id_grupo">Grupo *</Label>
+              <Label htmlFor="id_grupo_equipamento">Grupo *</Label>
               <Select
-                value={formData.id_grupo}
-                onValueChange={(value) => setFormData({ ...formData, id_grupo: value })}
+                value={formData.id_grupo_equipamento}
+                onValueChange={(value) => setFormData({ ...formData, id_grupo_equipamento: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione..." />
@@ -319,10 +319,10 @@ export default function Equipamentos() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="id_tipo">Tipo *</Label>
+              <Label htmlFor="id_tipo_equipamento">Tipo *</Label>
               <Select
-                value={formData.id_tipo}
-                onValueChange={(value) => setFormData({ ...formData, id_tipo: value })}
+                value={formData.id_tipo_equipamento}
+                onValueChange={(value) => setFormData({ ...formData, id_tipo_equipamento: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione..." />

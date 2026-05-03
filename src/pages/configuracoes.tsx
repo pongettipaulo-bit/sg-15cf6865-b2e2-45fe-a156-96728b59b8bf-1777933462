@@ -26,7 +26,7 @@ type EventoRegra = {
 
 type FonteDados = {
   id: string;
-  nome: string;
+  nm_fonte: string;
   tipo_conexao: string;
   ativo: boolean;
 };
@@ -320,7 +320,7 @@ export default function Configuracoes() {
                     <TableBody>
                       {fontes?.map((fonte) => (
                         <TableRow key={fonte.id}>
-                          <TableCell>{fonte.nome}</TableCell>
+                          <TableCell>{fonte.nm_fonte}</TableCell>
                           <TableCell>{fonte.tipo_conexao}</TableCell>
                           <TableCell>
                             <Switch

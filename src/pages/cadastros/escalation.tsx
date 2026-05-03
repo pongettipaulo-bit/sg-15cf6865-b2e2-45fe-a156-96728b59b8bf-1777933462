@@ -20,7 +20,7 @@ type EscalationItem = {
   id_tipo_evento: number;
   ordem: number;
   turno?: string;
-  nivel_hierarquico: number;
+  nivel_hierarquia: number;
   ativo: boolean;
   tipo_evento?: { nm_tipo_evento: string };
 };
@@ -44,7 +44,7 @@ export default function EscalationList() {
     id_tipo_evento: "",
     ordem: 1,
     turno: "",
-    nivel_hierarquico: 1,
+    nivel_hierarquia: 1,
   });
 
   const { data: escalation, isLoading } = useQuery({
@@ -128,7 +128,7 @@ export default function EscalationList() {
       id_tipo_evento: "",
       ordem: 1,
       turno: "",
-      nivel_hierarquico: 1,
+      nivel_hierarquia: 1,
     });
     setEditingItem(null);
   };
@@ -147,7 +147,7 @@ export default function EscalationList() {
       id_tipo_evento: String(item.id_tipo_evento),
       ordem: item.ordem,
       turno: item.turno || "",
-      nivel_hierarquico: item.nivel_hierarquico,
+      nivel_hierarquia: item.nivel_hierarquia,
     });
     setModalOpen(true);
   };
@@ -161,7 +161,7 @@ export default function EscalationList() {
       id_tipo_evento: Number(formData.id_tipo_evento),
       ordem: formData.ordem,
       turno: formData.turno || null,
-      nivel_hierarquico: formData.nivel_hierarquico,
+      nivel_hierarquia: formData.nivel_hierarquia,
       ativo: true,
     };
 
@@ -238,7 +238,7 @@ export default function EscalationList() {
                   <TableCell>{item.tipo_evento?.nm_tipo_evento}</TableCell>
                   <TableCell>{item.ordem}</TableCell>
                   <TableCell>{item.turno || "-"}</TableCell>
-                  <TableCell>{item.nivel_hierarquico}</TableCell>
+                  <TableCell>{item.nivel_hierarquia}</TableCell>
                   <TableCell>
                     <Switch
                       checked={item.ativo}
@@ -322,14 +322,13 @@ export default function EscalationList() {
                 />
               </div>
               <div>
-                <Label htmlFor="nivel_hierarquico">Nível*</Label>
+                <Label htmlFor="nivel_hierarquia">Nível Hierárquico*</Label>
                 <Input
-                  id="nivel_hierarquico"
+                  id="nivel_hierarquia"
                   type="number"
-                  value={formData.nivel_hierarquico}
-                  onChange={(e) =>
-                    setFormData({ ...formData, nivel_hierarquico: Number(e.target.value) })
-                  }
+                  min="1"
+                  value={formData.nivel_hierarquia}
+                  onChange={(e) => setFormData({ ...formData, nivel_hierarquia: Number(e.target.value) })}
                   required
                 />
               </div>
