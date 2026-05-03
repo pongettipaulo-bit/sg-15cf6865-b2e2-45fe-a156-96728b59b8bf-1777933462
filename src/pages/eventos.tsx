@@ -83,7 +83,7 @@ export default function Eventos() {
       const { data, error } = await supabase
         .from("dim_categoria_evento")
         .select("nm_categoria")
-        .eq("fg_ativo", true)
+        .eq("ativo", true)
         .order("nm_categoria");
 
       if (error) throw error;
