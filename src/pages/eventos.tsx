@@ -415,13 +415,35 @@ export default function Eventos() {
 
                           {/* Botões de ação */}
                           {evento.status === "pendente" && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => abrirModalAssumir(evento)}
-                            >
-                              Assumir
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => abrirModalAssumir(evento)}
+                              >
+                                Assumir
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  /* TODO: implementar sem tratativa */
+                                  toast({ title: "Funcionalidade em desenvolvimento" });
+                                }}
+                              >
+                                Sem tratativa
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => {
+                                  /* TODO: implementar cancelar */
+                                  toast({ title: "Funcionalidade em desenvolvimento" });
+                                }}
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
                           )}
                           {evento.status === "em_andamento" && (
                             <div className="flex gap-2">
