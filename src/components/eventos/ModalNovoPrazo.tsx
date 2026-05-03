@@ -1,14 +1,26 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/contexts/AuthProvider";
+import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+
+type Evento = {
+  id: string;
+  id_tipo_evento: string;
+  nm_tipo_evento: string;
+  criticidade: string;
+  status: string;
+  dt_prazo: string;
+  prazo_vencido: boolean;
+  id_equipamento: string;
+  nm_equipamento: string;
+  nivel_escalonamento: number;
+  vl_tempo_duracao_max: number;
+  criado_em: string;
+};
 
 type Props = {
   evento: Evento | null;
@@ -17,61 +29,21 @@ type Props = {
 };
 
 export function ModalNovoPrazo({ evento, open, onOpenChange }: Props) {
-  const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [prazo, setPrazo] = useState("");
-  const [justificativa, setJustificativa] = useState("");
+  const [novoPrazo, setNovoPrazo] = useState("");
 
-  const novoPrazoMutation = useMutation({
-    mutationFn: async () => {
-      // Update fila_evento
-      const { error: updateError } = await supabase
-        .from("fila_evento")
-        .update({
-          status: "escalado",
-          dt_prazo: prazo,
-          nivel_escalonamento: evento.nivel_escalonamento + 1,
-        })
-        .eq("id", evento.id);
-
-      if (updateError) throw updateError;
-
-      // Insert log_escalonamento
-      const { error: logError } = await supabase
-        .from("log_escalonamento")
-        .insert({
-          id_evento: evento.id,
-          dt_prazo: prazo,
-          nivel: evento.nivel_escalonamento + 1,
-          observacao: `[NOVO PRAZO] ${justificativa}`,
-          usuario: profile?.nm_usuario || profile?.email,
-        });
-
-      if (logError) throw logError;
+  const updateEvento = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const { error } = await supabase.from("fila_evento").update(data).eq("id", id);
+      if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["eventos"] });
-      toast({
-        title: "Prazo atualizado",
-        description: "O evento foi reescalonado com novo prazo.",
-      });
-      handleClose();
+      queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
+      toast({ title: "Prazo atualizado com sucesso" });
     },
-    onError: (error: any) => {
-      toast({
-        title: "Erro ao atualizar prazo",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
+    onError: () => toast({ title: "Erro ao atualizar prazo", variant: "destructive" }),
   });
-
-  const handleClose = () => {
-    setPrazo("");
-    setJustificativa("");
-    onClose();
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +65,7 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Definir Novo Prazo</DialogTitle>
           <DialogDescription>
@@ -101,40 +73,22 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: Props) {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="prazo">Novo Prazo *</Label>
+          <div>
+            <Label htmlFor="novoPrazo">Nova Data/Hora de Prazo*</Label>
             <Input
-              id="prazo"
+              id="novoPrazo"
               type="datetime-local"
-              value={prazo}
-              onChange={(e) => setPrazo(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="justificativa">Justificativa *</Label>
-              <span className="text-xs text-muted-foreground">
-                {justificativa.length}/280
-              </span>
-            </div>
-            <Textarea
-              id="justificativa"
-              value={justificativa}
-              onChange={(e) => setJustificativa(e.target.value.slice(0, 280))}
-              placeholder="Explique o motivo do atraso e o novo prazo..."
-              rows={5}
+              value={novoPrazo}
+              onChange={(e) => setNovoPrazo(e.target.value)}
               required
             />
           </div>
-
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={novoPrazoMutation.isPending}>
-              {novoPrazoMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Atualizar Prazo
+            <Button type="submit" disabled={updateEvento.isPending || !novoPrazo}>
+              {updateEvento.isPending ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>
         </form>

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/contexts/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,24 +8,35 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+type Evento = {
+  id: string;
+  id_tipo_evento: string;
+  nm_tipo_evento: string;
+  criticidade: string;
+  status: string;
+  dt_prazo: string;
+  prazo_vencido: boolean;
+  id_equipamento: string;
+  nm_equipamento: string;
+  nivel_escalonamento: number;
+  vl_tempo_duracao_max: number;
+  criado_em: string;
+};
+
+type Motivo = {
+  id: number;
+  nm_motivo: string;
+};
+
 type ModalAssumirProps = {
   evento: Evento | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
-type Motivo = {
-  id: number;
-  nm_motivo: string;
-  id_tipo_evento: string;
-};
-
 export function ModalAssumir({ evento, open, onOpenChange }: ModalAssumirProps) {
-  const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  const [motivoId, setMotivoId] = useState("");
   const [observacao, setObservacao] = useState("");
 
   const { data: motivos, isLoading: loadingMotivos } = useQuery({
@@ -58,106 +68,55 @@ export function ModalAssumir({ evento, open, onOpenChange }: ModalAssumirProps) 
   });
 
   const assumirMutation = useMutation({
-    mutationFn: async () => {
-      if (!evento || !profile) return;
-
-      const { error } = await supabase
-        .from("fila_evento")
-        .update({
-          status: "em_andamento",
-          dt_inicio: new Date().toISOString(),
-          id_usuario_inicio: profile.id,
-          observacao_inicio: observacao || `Assumido por ${profile.nm_usuario}`,
-        })
-        .eq("id", evento.id);
-
+    mutationFn: async (data: any) => {
+      const { error } = await supabase.from("fila_evento").update(data).eq("id", evento!.id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["eventos"] });
+      queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
       toast({ title: "Evento assumido com sucesso" });
-      handleClose();
+      onOpenChange(false);
+      setObservacao("");
     },
-    onError: () => {
-      toast({ title: "Erro ao assumir evento", variant: "destructive" });
-    },
+    onError: () => toast({ title: "Erro ao assumir evento", variant: "destructive" }),
   });
-
-  const handleClose = () => {
-    setMotivoId("");
-    setObservacao("");
-    onClose();
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!motivoId) {
-      toast({ title: "Selecione um motivo", variant: "destructive" });
-      return;
-    }
-    assumirMutation.mutate();
-  };
+    if (!evento) return;
 
-  if (!evento) return null;
+    assumirMutation.mutate({
+      status: "em_andamento",
+      dt_inicio: new Date().toISOString(),
+      observacao_inicio: observacao || null,
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Assumir Evento</DialogTitle>
           <DialogDescription>
             {evento?.nm_tipo_evento || "Evento"} — Preencha os dados para assumir
           </DialogDescription>
         </DialogHeader>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="motivo">Motivo *</Label>
-            <Select value={motivoId} onValueChange={setMotivoId} required>
-              <SelectTrigger id="motivo">
-                <SelectValue placeholder="Selecione o motivo" />
-              </SelectTrigger>
-              <SelectContent>
-                {loadingMotivos ? (
-                  <SelectItem value="loading" disabled>
-                    Carregando motivos...
-                  </SelectItem>
-                ) : motivos && motivos.length > 0 ? (
-                  motivos.map((motivo) => (
-                    <SelectItem key={motivo.id} value={String(motivo.id)}>
-                      {motivo.nm_motivo}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="empty" disabled>
-                    Nenhum motivo cadastrado para este tipo de evento
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="observacao">
-              Observação
-              <span className="text-xs text-muted-foreground ml-2">
-                {observacao.length}/280
-              </span>
-            </Label>
+            <Label htmlFor="observacao">Observação</Label>
             <Textarea
               id="observacao"
               value={observacao}
-              onChange={(e) => setObservacao(e.target.value.slice(0, 280))}
-              placeholder="Observações adicionais..."
+              onChange={(e) => setObservacao(e.target.value)}
+              placeholder="Descreva ações tomadas..."
               rows={4}
             />
           </div>
-
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={assumirMutation.isPending || !motivoId}>
+            <Button type="submit" disabled={assumirMutation.isPending}>
               {assumirMutation.isPending ? "Assumindo..." : "Assumir"}
             </Button>
           </DialogFooter>

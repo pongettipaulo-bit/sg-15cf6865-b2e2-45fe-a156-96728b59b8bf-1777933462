@@ -1,15 +1,32 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/contexts/AuthProvider";
+import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+type Evento = {
+  id: string;
+  id_tipo_evento: string;
+  nm_tipo_evento: string;
+  criticidade: string;
+  status: string;
+  dt_prazo: string;
+  prazo_vencido: boolean;
+  id_equipamento: string;
+  nm_equipamento: string;
+  nivel_escalonamento: number;
+  vl_tempo_duracao_max: number;
+  criado_em: string;
+};
+
+type Motivo = {
+  id: number;
+  nm_motivo: string;
+};
 
 type Props = {
   evento: Evento | null;
@@ -18,12 +35,10 @@ type Props = {
 };
 
 export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
-  const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [motivoId, setMotivoId] = useState("");
   const [observacao, setObservacao] = useState("");
-  const [confirmado, setConfirmado] = useState(false);
 
   const { data: motivos } = useQuery({
     queryKey: ["motivos-encerrar", evento?.id_tipo_evento],
@@ -43,63 +58,30 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
   });
 
   const encerrarMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from("fila_evento")
-        .update({
-          status: "encerrado",
-          dt_fim: new Date().toISOString(),
-          id_usuario_fim: profile?.id,
-          observacao_fim: `Encerrado por ${profile?.nm_usuario}`,
-          id_motivo_fim: motivoId,
-        })
-        .eq("id", evento.id);
-
+    mutationFn: async (data: any) => {
+      const { error } = await supabase.from("fila_evento").update(data).eq("id", evento!.id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["eventos"] });
-      toast({
-        title: "Evento encerrado",
-        description: "O evento foi finalizado com sucesso.",
-      });
-      handleClose();
+      queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
+      toast({ title: "Evento encerrado com sucesso" });
+      onOpenChange(false);
+      setMotivoId("");
+      setObservacao("");
     },
-    onError: (error: any) => {
-      toast({
-        title: "Erro ao encerrar evento",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
+    onError: () => toast({ title: "Erro ao encerrar evento", variant: "destructive" }),
   });
-
-  const handleClose = () => {
-    setMotivoId("");
-    setObservacao("");
-    setConfirmado(false);
-    onClose();
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!motivoId) {
-      toast({
-        title: "Motivo obrigatório",
-        description: "Informe como o evento foi resolvido.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!confirmado) {
-      toast({
-        title: "Confirmação necessária",
-        description: "Confirme que o evento está resolvido.",
-        variant: "destructive",
-      });
-      return;
-    }
-    encerrarMutation.mutate();
+    if (!evento || !motivoId) return;
+
+    encerrarMutation.mutate({
+      status: "encerrado",
+      dt_fim: new Date().toISOString(),
+      id_motivo: Number(motivoId),
+      observacao_fim: observacao || null,
+    });
   };
 
   return (
@@ -112,60 +94,37 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="motivo">Como foi resolvido? *</Label>
-            <Select value={motivoId} onValueChange={setMotivoId}>
-              <SelectTrigger id="motivo">
+          <div>
+            <Label htmlFor="motivo">Motivo de Encerramento*</Label>
+            <Select value={motivoId} onValueChange={setMotivoId} required>
+              <SelectTrigger>
                 <SelectValue placeholder="Selecione o motivo" />
               </SelectTrigger>
               <SelectContent>
-                {motivos?.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.nm_motivo}
+                {motivos?.map((motivo) => (
+                  <SelectItem key={motivo.id} value={String(motivo.id)}>
+                    {motivo.nm_motivo}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="observacao">Observação final</Label>
-              <span className="text-xs text-muted-foreground">
-                {observacao.length}/280
-              </span>
-            </div>
+          <div>
+            <Label htmlFor="observacao">Observação Final</Label>
             <Textarea
               id="observacao"
               value={observacao}
-              onChange={(e) => setObservacao(e.target.value.slice(0, 280))}
-              placeholder="Detalhes sobre a resolução..."
+              onChange={(e) => setObservacao(e.target.value)}
+              placeholder="Descreva a resolução..."
               rows={4}
             />
           </div>
-
-          <div className="flex items-center gap-3 p-4 bg-warning-bg rounded-lg border border-warning">
-            <AlertTriangle className="w-5 h-5 text-warning-dark shrink-0" />
-            <div className="flex items-start gap-2">
-              <Checkbox
-                id="confirmacao"
-                checked={confirmado}
-                onCheckedChange={(checked) => setConfirmado(checked as boolean)}
-                className="mt-1"
-              />
-              <Label htmlFor="confirmacao" className="text-sm leading-tight cursor-pointer">
-                Confirmo que o evento está resolvido e pode ser encerrado
-              </Label>
-            </div>
-          </div>
-
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={encerrarMutation.isPending}>
-              {encerrarMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Encerrar Evento
+            <Button type="submit" disabled={encerrarMutation.isPending || !motivoId}>
+              {encerrarMutation.isPending ? "Encerrando..." : "Encerrar"}
             </Button>
           </DialogFooter>
         </form>
