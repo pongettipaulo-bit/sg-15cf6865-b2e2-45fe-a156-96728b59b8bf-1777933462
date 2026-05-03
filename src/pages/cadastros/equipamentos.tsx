@@ -172,9 +172,10 @@ export default function Equipamentos() {
   };
 
   const filteredEquipamentos = equipamentos?.filter((e) => {
-    if (!e || searchTerm === "") return true;
-    return String(e.cd_equipamento ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-           String(e.nm_equipamento ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+    if (!e) return false;
+    return searchTerm === "" || 
+      String(e.cd_equipamento ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(e.nm_equipamento ?? "").toLowerCase().includes(searchTerm.toLowerCase());
   }) ?? [];
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {

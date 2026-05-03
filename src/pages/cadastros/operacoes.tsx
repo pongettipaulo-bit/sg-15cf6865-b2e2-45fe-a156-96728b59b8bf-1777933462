@@ -84,9 +84,10 @@ export default function Operacoes() {
   };
 
   const filteredOperacoes = operacoes?.filter((o) => {
-    if (!o || searchTerm === "") return true;
-    return String(o.cd_operacao ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-           String(o.nm_operacao ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+    if (!o) return false;
+    return searchTerm === "" || 
+      String(o.cd_operacao ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(o.nm_operacao ?? "").toLowerCase().includes(searchTerm.toLowerCase());
   }) ?? [];
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {

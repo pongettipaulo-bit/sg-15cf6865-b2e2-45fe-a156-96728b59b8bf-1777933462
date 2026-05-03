@@ -84,9 +84,10 @@ export default function GruposEquipamento() {
   };
 
   const filteredGrupos = grupos?.filter((g) => {
-    if (!g || searchTerm === "") return true;
-    return String(g.cd_grupo ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-           String(g.nm_grupo ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+    if (!g) return false;
+    return searchTerm === "" || 
+      String(g.cd_grupo ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(g.nm_grupo ?? "").toLowerCase().includes(searchTerm.toLowerCase());
   }) ?? [];
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {

@@ -84,9 +84,10 @@ export default function TiposEquipamento() {
   };
 
   const filteredTipos = tipos?.filter((t) => {
-    if (!t || searchTerm === "") return true;
-    return String(t.cd_tipo ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-           String(t.nm_tipo ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+    if (!t) return false;
+    return searchTerm === "" || 
+      String(t.cd_tipo ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(t.nm_tipo ?? "").toLowerCase().includes(searchTerm.toLowerCase());
   }) ?? [];
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {

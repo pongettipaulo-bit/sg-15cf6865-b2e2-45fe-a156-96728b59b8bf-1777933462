@@ -100,9 +100,10 @@ export default function Operadores() {
   };
 
   const filteredOperadores = operadores?.filter((o) => {
-    if (!o || searchTerm === "") return true;
-    return String(o.cd_operador ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-           String(o.nm_operador ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+    if (!o) return false;
+    return searchTerm === "" || 
+      String(o.cd_operador ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(o.nm_operador ?? "").toLowerCase().includes(searchTerm.toLowerCase());
   }) ?? [];
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {

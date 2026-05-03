@@ -2,53 +2,55 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthProvider";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Search, Plus, Edit, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Edit } from "lucide-react";
 
 type Subcategoria = {
-  id: string;
+  id: number;
   nm_subcategoria: string;
-  id_categoria: string;
+  id_categoria: number;
   fg_ativo: boolean;
-  nm_categoria?: string;
+  categoria?: { nm_categoria: string };
+};
+
+type Categoria = {
+  id: number;
+  nm_categoria: string;
 };
 
 export default function Subcategorias() {
   const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
   const [searchTerm, setSearchTerm] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-  const [editando, setEditando] = useState<Subcategoria | null>(null);
-  const [formData, setFormData] = useState({ nm_subcategoria: "", id_categoria: "" });
+  const [editingSubcategoria, setEditingSubcategoria] = useState<Subcategoria | null>(null);
+  const [formData, setFormData] = useState({
+    nm_subcategoria: "",
+    id_categoria: "",
+  });
 
   const { data: subcategorias, isLoading } = useQuery({
-    queryKey: ["subcategorias_crud"],
+    queryKey: ["subcategorias"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dim_subcategoria_evento")
-        .select(`*, nm_categoria:dim_categoria_evento(nm_categoria)`)
-        .order("criado_em", { ascending: false });
+        .select("*, categoria:dim_categoria_evento(nm_categoria)")
+        .order("nm_subcategoria");
       if (error) throw error;
-      return data.map((s: any) => ({
-        ...s,
-        nm_categoria: s.nm_categoria?.nm_categoria || "—",
-      })) as Subcategoria[];
+      return data as Subcategoria[];
     },
   });
 
   const { data: categorias } = useQuery({
-    queryKey: ["categorias_select"],
+    queryKey: ["categorias"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dim_categoria_evento")
@@ -56,166 +58,181 @@ export default function Subcategorias() {
         .eq("fg_ativo", true)
         .order("nm_categoria");
       if (error) throw error;
-      return data;
+      return data as Categoria[];
     },
   });
 
-  const toggleAtivo = useMutation({
-    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
-      const { error } = await supabase
-        .from("dim_subcategoria_evento")
-        .update({ fg_ativo: ativo })
-        .eq("id", id);
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const { error } = await supabase.from("dim_subcategoria_evento").insert([data]);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["subcategorias_crud"] });
-      toast({ title: "Subcategoria atualizada" });
+      queryClient.invalidateQueries({ queryKey: ["subcategorias"] });
+      toast({ title: "Subcategoria criada com sucesso" });
+      setModalOpen(false);
+      resetForm();
     },
+    onError: () => toast({ title: "Erro ao criar subcategoria", variant: "destructive" }),
   });
 
-  const salvar = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      if (editando) {
-        const { error } = await supabase
-          .from("dim_subcategoria_evento")
-          .update(data)
-          .eq("id", editando.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("dim_subcategoria_evento")
-          .insert({ ...data, fg_ativo: true });
-        if (error) throw error;
-      }
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const { error } = await supabase.from("dim_subcategoria_evento").update(data).eq("id", id);
+      if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["subcategorias_crud"] });
-      toast({ title: editando ? "Subcategoria atualizada" : "Subcategoria criada" });
-      fecharModal();
+      queryClient.invalidateQueries({ queryKey: ["subcategorias"] });
+      toast({ title: "Subcategoria atualizada com sucesso" });
+      setModalOpen(false);
+      resetForm();
     },
+    onError: () => toast({ title: "Erro ao atualizar subcategoria", variant: "destructive" }),
   });
 
-  const abrirModal = (sub?: Subcategoria) => {
-    if (sub) {
-      setEditando(sub);
-      setFormData({ nm_subcategoria: sub.nm_subcategoria, id_categoria: sub.id_categoria });
-    } else {
-      setEditando(null);
-      setFormData({ nm_subcategoria: "", id_categoria: "" });
-    }
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, fg_ativo }: { id: number; fg_ativo: boolean }) => {
+      const { error } = await supabase.from("dim_subcategoria_evento").update({ fg_ativo }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["subcategorias"] });
+      toast({ title: "Status atualizado com sucesso" });
+    },
+    onError: () => toast({ title: "Erro ao atualizar status", variant: "destructive" }),
+  });
+
+  const filteredSubcategorias = subcategorias?.filter((s) => {
+    if (!s) return false;
+    return searchTerm === "" || 
+      String(s.nm_subcategoria ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+  }) ?? [];
+
+  const resetForm = () => {
+    setFormData({ nm_subcategoria: "", id_categoria: "" });
+    setEditingSubcategoria(null);
+  };
+
+  const openCreateModal = () => {
+    resetForm();
     setModalOpen(true);
   };
 
-  const fecharModal = () => {
-    setModalOpen(false);
-    setEditando(null);
+  const openEditModal = (subcategoria: Subcategoria) => {
+    setEditingSubcategoria(subcategoria);
+    setFormData({
+      nm_subcategoria: subcategoria.nm_subcategoria,
+      id_categoria: String(subcategoria.id_categoria),
+    });
+    setModalOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    salvar.mutate(formData);
-  };
+    const payload = {
+      nm_subcategoria: formData.nm_subcategoria,
+      id_categoria: Number(formData.id_categoria),
+      fg_ativo: true,
+    };
 
-  const filteredSubcategorias = subcategorias?.filter((s) => {
-    if (!s || searchTerm === "") return true;
-    return String(s.nm_subcategoria ?? "").toLowerCase().includes(searchTerm.toLowerCase());
-  }) ?? [];
+    if (editingSubcategoria) {
+      updateMutation.mutate({ id: editingSubcategoria.id, data: payload });
+    } else {
+      createMutation.mutate(payload);
+    }
+  };
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
-      <div className="flex items-center justify-center h-96">
-        <p className="text-muted-foreground">Acesso restrito</p>
+      <div className="p-8">
+        <div className="flex items-center gap-3 text-destructive">
+          <AlertCircle className="w-5 h-5" />
+          <p>Acesso negado. Apenas Admin e Avançado podem acessar esta página.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold mb-2">Subcategorias</h1>
-          <p className="text-muted-foreground">Subcategorias por categoria</p>
+    <div className="p-8">
+      <div className="mb-6">
+        <h1 className="text-3xl font-semibold mb-2">Subcategorias de Evento</h1>
+        <p className="text-muted-foreground">Gerencie as subcategorias de evento</p>
+      </div>
+
+      <div className="flex gap-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar subcategoria..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
         </div>
-        <Button onClick={() => abrirModal()}>
+        <Button onClick={openCreateModal}>
           <Plus className="w-4 h-4 mr-2" />
-          Nova Subcategoria
+          Nova
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar subcategorias..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-12" />
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredSubcategorias && filteredSubcategorias.length > 0 ? (
-                    filteredSubcategorias.map((sub) => (
-                      <TableRow key={sub.id}>
-                        <TableCell>{sub.nm_subcategoria}</TableCell>
-                        <TableCell>{sub.nm_categoria}</TableCell>
-                        <TableCell>
-                          <Switch
-                            checked={sub.fg_ativo}
-                            onCheckedChange={(checked) =>
-                              toggleAtivo.mutate({ id: sub.id, ativo: checked })
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="sm" onClick={() => abrirModal(sub)}>
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                        Nenhuma subcategoria encontrada
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nome</TableHead>
+              <TableHead>Categoria</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-20">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  Carregando...
+                </TableCell>
+              </TableRow>
+            ) : filteredSubcategorias.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  Nenhuma subcategoria encontrada
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredSubcategorias.map((subcategoria) => (
+                <TableRow key={subcategoria.id}>
+                  <TableCell className="font-medium">{subcategoria.nm_subcategoria}</TableCell>
+                  <TableCell>{subcategoria.categoria?.nm_categoria}</TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={subcategoria.fg_ativo}
+                      onCheckedChange={(checked) =>
+                        toggleMutation.mutate({ id: subcategoria.id, fg_ativo: checked })
+                      }
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="sm" onClick={() => openEditModal(subcategoria)}>
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editando ? "Editar Subcategoria" : "Nova Subcategoria"}</DialogTitle>
+            <DialogTitle>{editingSubcategoria ? "Editar" : "Nova"} Subcategoria</DialogTitle>
+            <DialogDescription>Preencha as informações da subcategoria</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="nm_subcategoria">Nome *</Label>
+              <Label htmlFor="nm_subcategoria">Nome*</Label>
               <Input
                 id="nm_subcategoria"
                 value={formData.nm_subcategoria}
@@ -224,17 +241,17 @@ export default function Subcategorias() {
               />
             </div>
             <div>
-              <Label htmlFor="id_categoria">Categoria *</Label>
+              <Label htmlFor="id_categoria">Categoria*</Label>
               <Select
                 value={formData.id_categoria}
                 onValueChange={(value) => setFormData({ ...formData, id_categoria: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione..." />
+                  <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categorias?.map((cat: any) => (
-                    <SelectItem key={cat.id} value={cat.id}>
+                  {categorias?.map((cat) => (
+                    <SelectItem key={cat.id} value={String(cat.id)}>
                       {cat.nm_categoria}
                     </SelectItem>
                   ))}
@@ -242,12 +259,10 @@ export default function Subcategorias() {
               </Select>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={fecharModal}>
+              <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={salvar.isPending}>
-                {salvar.isPending ? "Salvando..." : "Salvar"}
-              </Button>
+              <Button type="submit">{editingSubcategoria ? "Salvar" : "Criar"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

@@ -100,9 +100,10 @@ export default function Unidades() {
   };
 
   const filteredUnidades = unidades?.filter((u) => {
-    if (!u || searchTerm === "") return true;
-    return String(u.cd_unidade ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-           String(u.nm_unidade ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+    if (!u) return false;
+    return searchTerm === "" || 
+      String(u.cd_unidade ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(u.nm_unidade ?? "").toLowerCase().includes(searchTerm.toLowerCase());
   }) ?? [];
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
