@@ -35,12 +35,13 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
   const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [contatoId, setContatoId] = useState<string>("");
+
+  const [contatoId, setContatoId] = useState("");
   const [prazo, setPrazo] = useState("");
   const [observacao, setObservacao] = useState("");
 
-  const { data: contatos, isLoading: loadingContatos } = useQuery({
-    queryKey: ["escalation-contatos", evento?.id_tipo_evento],
+  const { data: contatos } = useQuery({
+    queryKey: ["escalation-list", evento?.id_tipo_evento],
     queryFn: async () => {
       if (!evento?.id_tipo_evento) return [];
 
@@ -59,52 +60,55 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
 
   const escalarMutation = useMutation({
     mutationFn: async () => {
-      if (!evento || !contatoId || !prazo) return;
+      if (!evento || !contatoId || !prazo || !profile?.id) return;
 
-      const contato = contatos?.find((c) => c.id === Number(contatoId));
+      const contatoSelecionado = contatos?.find((c) => String(c.id) === contatoId);
+      if (!contatoSelecionado) throw new Error("Contato não encontrado");
+
       const novoNivel = evento.nivel_escalonamento + 1;
 
-      // Update fila_evento
+      // 1. Insert log_escalonamento
+      const { error: logError } = await supabase
+        .from("log_escalonamento")
+        .insert({
+          id_fila_evento: evento.id,
+          nivel: novoNivel,
+          dt_prazo: new Date(prazo).toISOString(),
+          id_usuario: profile.id,
+          nm_contato: contatoSelecionado.nm_pessoa,
+          observacao: observacao || null,
+        });
+
+      if (logError) throw logError;
+
+      // 2. Update fila_evento
       const { error: updateError } = await supabase
         .from("fila_evento")
         .update({
           status: "escalado",
+          dt_prazo: new Date(prazo).toISOString(),
           nivel_escalonamento: novoNivel,
-          dt_prazo: prazo,
-          observacao_inicio: observacao || `Escalado por ${profile?.nm_usuario}`,
-          id_usuario_inicio: profile?.id,
-          atualizado_em: new Date().toISOString(),
         })
         .eq("id", evento.id);
 
       if (updateError) throw updateError;
-
-      // Insert log_escalonamento
-      const { error: logError } = await supabase.from("log_escalonamento").insert({
-        id_fila_evento: evento.id,
-        id_contato: Number(contatoId),
-        nivel: novoNivel,
-        dt_prazo: prazo,
-        observacao,
-      });
-
-      if (logError) throw logError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
       toast({ title: "Evento escalado com sucesso" });
-      handleClose();
+      resetForm();
+      onOpenChange(false);
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Erro ao escalar evento:", error);
       toast({ title: "Erro ao escalar evento", variant: "destructive" });
     },
   });
 
-  const handleClose = () => {
+  const resetForm = () => {
     setContatoId("");
     setPrazo("");
     setObservacao("");
-    onOpenChange(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -114,14 +118,13 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Escalar Evento</DialogTitle>
           <DialogDescription>
-            {evento?.nm_tipo_evento} — Nível {evento?.nivel_escalonamento || 0}
+            {evento?.nm_tipo_evento || "Evento"} — Nível {evento?.nivel_escalonamento || 0}
           </DialogDescription>
         </DialogHeader>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="contato">Contato Acionado *</Label>
@@ -130,22 +133,11 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
                 <SelectValue placeholder="Selecione o contato" />
               </SelectTrigger>
               <SelectContent>
-                {loadingContatos ? (
-                  <SelectItem value="loading" disabled>
-                    Carregando...
+                {contatos?.map((contato) => (
+                  <SelectItem key={contato.id} value={String(contato.id)}>
+                    {contato.nm_pessoa} {contato.turno ? `(${contato.turno})` : ""}
                   </SelectItem>
-                ) : contatos && contatos.length > 0 ? (
-                  contatos.map((contato) => (
-                    <SelectItem key={contato.id} value={String(contato.id)}>
-                      {contato.nm_pessoa}
-                      {contato.turno && ` (${contato.turno})`}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="empty" disabled>
-                    Nenhum contato cadastrado para este tipo de evento
-                  </SelectItem>
-                )}
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -165,11 +157,10 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
             <Label htmlFor="observacao">Observação</Label>
             <Textarea
               id="observacao"
-              placeholder="Contexto adicional..."
               value={observacao}
-              onChange={(e) => setObservacao(e.target.value.slice(0, 280))}
+              onChange={(e) => setObservacao(e.target.value)}
+              placeholder="Contexto adicional..."
               maxLength={280}
-              rows={3}
             />
             <p className="text-xs text-muted-foreground text-right mt-1">
               {observacao.length}/280
@@ -177,10 +168,10 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={escalarMutation.isPending || !contatoId || !prazo}>
+            <Button type="submit" disabled={escalarMutation.isPending}>
               {escalarMutation.isPending ? "Escalando..." : "Escalar"}
             </Button>
           </DialogFooter>
