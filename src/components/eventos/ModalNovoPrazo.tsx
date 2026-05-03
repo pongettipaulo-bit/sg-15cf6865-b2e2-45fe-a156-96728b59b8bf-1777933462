@@ -73,17 +73,22 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: Props) {
     onClose();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prazo || !justificativa.trim()) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Defina o novo prazo e justifique o atraso.",
-        variant: "destructive",
-      });
-      return;
-    }
-    novoPrazoMutation.mutate();
+    if (!evento) return;
+
+    const novaData = new Date(novoPrazo);
+    
+    await updateEvento.mutateAsync({
+      id: evento.id,
+      data: {
+        dt_prazo: novaData.toISOString(),
+        prazo_vencido: false,
+      },
+    });
+
+    setNovoPrazo("");
+    onOpenChange(false);
   };
 
   return (
@@ -92,7 +97,7 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: Props) {
         <DialogHeader>
           <DialogTitle>Definir Novo Prazo</DialogTitle>
           <DialogDescription>
-            {evento.nm_tipo_evento} — Evento atrasado
+            {evento?.nm_tipo_evento || "Evento"} — Evento atrasado
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">

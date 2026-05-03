@@ -101,11 +101,13 @@ export function ModalAssumir({ evento, open, onOpenChange }: ModalAssumirProps) 
   if (!evento) return null;
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Assumir Evento</DialogTitle>
-          <DialogDescription>{evento.nm_tipo_evento}</DialogDescription>
+          <DialogDescription>
+            {evento?.nm_tipo_evento || "Evento"} — Preencha os dados para assumir
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -26,18 +26,20 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
   const [confirmado, setConfirmado] = useState(false);
 
   const { data: motivos } = useQuery({
-    queryKey: ["motivos-encerrar", evento.id_tipo_evento],
+    queryKey: ["motivos-encerrar", evento?.id_tipo_evento],
     queryFn: async () => {
+      if (!evento?.id_tipo_evento) return [];
+      
       const { data, error } = await supabase
         .from("dim_motivo_evento")
         .select("id, nm_motivo")
-        .eq("fg_ativo", true)
+        .eq("id_tipo_evento", evento.id_tipo_evento)
+        .eq("ativo", true)
         .order("nm_motivo");
-
       if (error) throw error;
-      return data;
+      return data as Motivo[];
     },
-    enabled: open,
+    enabled: !!evento?.id_tipo_evento && open,
   });
 
   const encerrarMutation = useMutation({
@@ -102,11 +104,11 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Encerrar Evento</DialogTitle>
           <DialogDescription>
-            {evento.nm_tipo_evento}
+            {evento?.nm_tipo_evento || "Evento"} — Preencha os dados para encerrar
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
