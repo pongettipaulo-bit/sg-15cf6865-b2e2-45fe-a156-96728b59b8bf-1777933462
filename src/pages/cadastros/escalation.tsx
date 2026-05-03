@@ -156,9 +156,12 @@ export default function EscalationList() {
     salvar.mutate(formData);
   };
 
-  const filtrados = escalations?.filter((e) =>
-    e.pessoa.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEscalation = escalations?.filter((e) => {
+    if (!e || searchTerm === "") return true;
+    return String(e.nm_pessoa ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+           String(e.contato ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+           String(e.turno ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+  }) ?? [];
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
@@ -216,8 +219,8 @@ export default function EscalationList() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtrados && filtrados.length > 0 ? (
-                    filtrados.map((esc) => (
+                  {filteredEscalation && filteredEscalation.length > 0 ? (
+                    filteredEscalation.map((esc) => (
                       <TableRow key={esc.id}>
                         <TableCell className="font-mono">{esc.ordem}</TableCell>
                         <TableCell>{esc.pessoa}</TableCell>

@@ -171,10 +171,11 @@ export default function Equipamentos() {
     salvar.mutate(formData);
   };
 
-  const filtrados = equipamentos?.filter((e) =>
-    e.cd_equipamento.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    e.nm_equipamento.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEquipamentos = equipamentos?.filter((e) => {
+    if (!e || searchTerm === "") return true;
+    return String(e.cd_equipamento ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+           String(e.nm_equipamento ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+  }) ?? [];
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
@@ -231,8 +232,8 @@ export default function Equipamentos() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtrados && filtrados.length > 0 ? (
-                    filtrados.map((equip) => (
+                  {filteredEquipamentos && filteredEquipamentos.length > 0 ? (
+                    filteredEquipamentos.map((equip) => (
                       <TableRow key={equip.id}>
                         <TableCell className="font-mono">{equip.cd_equipamento}</TableCell>
                         <TableCell>{equip.nm_equipamento}</TableCell>

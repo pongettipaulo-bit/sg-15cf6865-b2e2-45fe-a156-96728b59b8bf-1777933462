@@ -98,9 +98,11 @@ export default function Categorias() {
     salvar.mutate(formData);
   };
 
-  const filtrados = categorias?.filter((c) =>
-    c.nm_categoria.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCategorias = categorias?.filter((c) => {
+    if (!c || searchTerm === "") return true;
+    return String(c.nm_categoria ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+           String(c.descricao ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+  }) ?? [];
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
@@ -153,8 +155,8 @@ export default function Categorias() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtrados && filtrados.length > 0 ? (
-                    filtrados.map((cat) => (
+                  {filteredCategorias && filteredCategorias.length > 0 ? (
+                    filteredCategorias.map((cat) => (
                       <TableRow key={cat.id}>
                         <TableCell>{cat.nm_categoria}</TableCell>
                         <TableCell>

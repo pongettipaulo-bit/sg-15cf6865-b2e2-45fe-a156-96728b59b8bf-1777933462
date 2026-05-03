@@ -191,11 +191,14 @@ export default function TiposEvento() {
     salvarTipo.mutate(formData);
   };
 
-  const tiposFiltrados = tipos?.filter(
-    (t) =>
-      t.nm_tipo_evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.cd_tipo_evento.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTipos = tipos?.filter((t) => {
+    if (!t || searchTerm === "") return true;
+    const matchesSearch = 
+      String(t.cd_tipo_evento_externo ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(t.nm_tipo_evento ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCriticidade = criticidadeFilter === "todas" || t.criticidade === criticidadeFilter;
+    return matchesSearch && matchesCriticidade;
+  }) ?? [];
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
@@ -256,8 +259,8 @@ export default function TiposEvento() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tiposFiltrados && tiposFiltrados.length > 0 ? (
-                    tiposFiltrados.map((tipo) => (
+                  {filteredTipos && filteredTipos.length > 0 ? (
+                    filteredTipos.map((tipo) => (
                       <TableRow key={tipo.id}>
                         <TableCell className="font-mono text-sm">
                           {tipo.cd_tipo_evento}

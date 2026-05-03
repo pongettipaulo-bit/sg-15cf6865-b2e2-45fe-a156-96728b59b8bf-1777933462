@@ -99,10 +99,11 @@ export default function Operadores() {
     salvar.mutate(formData);
   };
 
-  const filtrados = operadores?.filter((o) =>
-    o.cd_operador.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    o.nm_operador.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredOperadores = operadores?.filter((o) => {
+    if (!o || searchTerm === "") return true;
+    return String(o.cd_operador ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+           String(o.nm_operador ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+  }) ?? [];
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
@@ -156,8 +157,8 @@ export default function Operadores() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtrados && filtrados.length > 0 ? (
-                    filtrados.map((op) => (
+                  {filteredOperadores && filteredOperadores.length > 0 ? (
+                    filteredOperadores.map((op) => (
                       <TableRow key={op.id}>
                         <TableCell className="font-mono">{op.cd_operador}</TableCell>
                         <TableCell>{op.nm_operador}</TableCell>

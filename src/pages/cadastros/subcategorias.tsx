@@ -117,9 +117,11 @@ export default function Subcategorias() {
     salvar.mutate(formData);
   };
 
-  const filtrados = subcategorias?.filter((s) =>
-    s.nm_subcategoria.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredSubcategorias = subcategorias?.filter((s) => {
+    if (!s || searchTerm === "") return true;
+    return String(s.nm_subcategoria ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+           String(s.descricao ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+  }) ?? [];
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
@@ -173,8 +175,8 @@ export default function Subcategorias() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtrados && filtrados.length > 0 ? (
-                    filtrados.map((sub) => (
+                  {filteredSubcategorias && filteredSubcategorias.length > 0 ? (
+                    filteredSubcategorias.map((sub) => (
                       <TableRow key={sub.id}>
                         <TableCell>{sub.nm_subcategoria}</TableCell>
                         <TableCell>{sub.nm_categoria}</TableCell>

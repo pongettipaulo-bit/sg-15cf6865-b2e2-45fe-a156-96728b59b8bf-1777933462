@@ -83,10 +83,11 @@ export default function Operacoes() {
     salvar.mutate(formData);
   };
 
-  const filtrados = operacoes?.filter((o) =>
-    o.cd_operacao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    o.nm_operacao.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredOperacoes = operacoes?.filter((o) => {
+    if (!o || searchTerm === "") return true;
+    return String(o.cd_operacao ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+           String(o.nm_operacao ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+  }) ?? [];
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
@@ -139,8 +140,8 @@ export default function Operacoes() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtrados && filtrados.length > 0 ? (
-                    filtrados.map((op) => (
+                  {filteredOperacoes && filteredOperacoes.length > 0 ? (
+                    filteredOperacoes.map((op) => (
                       <TableRow key={op.id}>
                         <TableCell className="font-mono">{op.cd_operacao}</TableCell>
                         <TableCell>{op.nm_operacao}</TableCell>

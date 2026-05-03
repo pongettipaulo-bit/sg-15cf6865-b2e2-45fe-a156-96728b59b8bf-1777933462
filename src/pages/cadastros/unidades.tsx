@@ -99,10 +99,11 @@ export default function Unidades() {
     salvar.mutate(formData);
   };
 
-  const filtrados = unidades?.filter((u) =>
-    u.cd_unidade.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.nm_unidade.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUnidades = unidades?.filter((u) => {
+    if (!u || searchTerm === "") return true;
+    return String(u.cd_unidade ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+           String(u.nm_unidade ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+  }) ?? [];
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
@@ -156,8 +157,8 @@ export default function Unidades() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtrados && filtrados.length > 0 ? (
-                    filtrados.map((unidade) => (
+                  {filteredUnidades && filteredUnidades.length > 0 ? (
+                    filteredUnidades.map((unidade) => (
                       <TableRow key={unidade.id}>
                         <TableCell className="font-mono">{unidade.cd_unidade}</TableCell>
                         <TableCell>{unidade.nm_unidade}</TableCell>

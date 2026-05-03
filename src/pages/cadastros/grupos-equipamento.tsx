@@ -83,10 +83,11 @@ export default function GruposEquipamento() {
     salvar.mutate(formData);
   };
 
-  const filtrados = grupos?.filter((g) =>
-    g.cd_grupo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    g.nm_grupo.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredGrupos = grupos?.filter((g) => {
+    if (!g || searchTerm === "") return true;
+    return String(g.cd_grupo ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+           String(g.nm_grupo ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+  }) ?? [];
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
@@ -139,8 +140,8 @@ export default function GruposEquipamento() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtrados && filtrados.length > 0 ? (
-                    filtrados.map((grupo) => (
+                  {filteredGrupos && filteredGrupos.length > 0 ? (
+                    filteredGrupos.map((grupo) => (
                       <TableRow key={grupo.id}>
                         <TableCell className="font-mono">{grupo.cd_grupo}</TableCell>
                         <TableCell>{grupo.nm_grupo}</TableCell>

@@ -83,10 +83,11 @@ export default function TiposEquipamento() {
     salvar.mutate(formData);
   };
 
-  const filtrados = tipos?.filter((t) =>
-    t.cd_tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.nm_tipo.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTipos = tipos?.filter((t) => {
+    if (!t || searchTerm === "") return true;
+    return String(t.cd_tipo ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+           String(t.nm_tipo ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+  }) ?? [];
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
@@ -139,8 +140,8 @@ export default function TiposEquipamento() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtrados && filtrados.length > 0 ? (
-                    filtrados.map((tipo) => (
+                  {filteredTipos && filteredTipos.length > 0 ? (
+                    filteredTipos.map((tipo) => (
                       <TableRow key={tipo.id}>
                         <TableCell className="font-mono">{tipo.cd_tipo}</TableCell>
                         <TableCell>{tipo.nm_tipo}</TableCell>
