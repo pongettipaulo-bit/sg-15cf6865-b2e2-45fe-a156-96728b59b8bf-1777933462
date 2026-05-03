@@ -12,16 +12,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, AlertTriangle } from "lucide-react";
 
 type Props = {
-  evento: {
-    id: string;
-    nm_tipo_evento: string;
-    id_tipo_evento?: string;
-  };
+  evento: Evento | null;
   open: boolean;
-  onClose: () => void;
+  onOpenChange: (open: boolean) => void;
 };
 
-export function ModalEncerrar({ evento, open, onClose }: Props) {
+export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
   const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -105,7 +101,7 @@ export function ModalEncerrar({ evento, open, onClose }: Props) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Encerrar Evento</DialogTitle>

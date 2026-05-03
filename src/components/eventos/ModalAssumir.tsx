@@ -10,13 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type ModalAssumirProps = {
-  evento: {
-    id: string;
-    nm_tipo_evento: string;
-    id_tipo_evento: string;
-  } | null;
+  evento: Evento | null;
   open: boolean;
-  onClose: () => void;
+  onOpenChange: (open: boolean) => void;
 };
 
 type Motivo = {
@@ -25,7 +21,7 @@ type Motivo = {
   id_tipo_evento: string;
 };
 
-export function ModalAssumir({ evento, open, onClose }: ModalAssumirProps) {
+export function ModalAssumir({ evento, open, onOpenChange }: ModalAssumirProps) {
   const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
