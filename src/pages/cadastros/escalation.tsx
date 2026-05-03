@@ -158,7 +158,7 @@ export default function EscalationList() {
 
   const filteredEscalation = escalations?.filter((e) => {
     if (!e || searchTerm === "") return true;
-    return String(e.nm_pessoa ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    return String(e.pessoa ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
            String(e.contato ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
            String(e.turno ?? "").toLowerCase().includes(searchTerm.toLowerCase());
   }) ?? [];

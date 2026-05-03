@@ -55,6 +55,7 @@ export default function TiposEvento() {
     id_subcategoria: "",
     notificar_telegram: false,
   });
+  const [criticidadeFilter, setCriticidadeFilter] = useState<string>("todas");
 
   // Queries
   const { data: tipos, isLoading } = useQuery({
@@ -193,9 +194,7 @@ export default function TiposEvento() {
 
   const filteredTipos = tipos?.filter((t) => {
     if (!t || searchTerm === "") return true;
-    const matchesSearch = 
-      String(t.cd_tipo_evento_externo ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(t.nm_tipo_evento ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = String(t.nm_tipo_evento ?? "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCriticidade = criticidadeFilter === "todas" || t.criticidade === criticidadeFilter;
     return matchesSearch && matchesCriticidade;
   }) ?? [];

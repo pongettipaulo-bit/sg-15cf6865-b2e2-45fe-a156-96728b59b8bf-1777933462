@@ -119,8 +119,7 @@ export default function Subcategorias() {
 
   const filteredSubcategorias = subcategorias?.filter((s) => {
     if (!s || searchTerm === "") return true;
-    return String(s.nm_subcategoria ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-           String(s.descricao ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+    return String(s.nm_subcategoria ?? "").toLowerCase().includes(searchTerm.toLowerCase());
   }) ?? [];
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {

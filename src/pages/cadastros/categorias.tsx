@@ -100,8 +100,7 @@ export default function Categorias() {
 
   const filteredCategorias = categorias?.filter((c) => {
     if (!c || searchTerm === "") return true;
-    return String(c.nm_categoria ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-           String(c.descricao ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+    return String(c.nm_categoria ?? "").toLowerCase().includes(searchTerm.toLowerCase());
   }) ?? [];
 
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
