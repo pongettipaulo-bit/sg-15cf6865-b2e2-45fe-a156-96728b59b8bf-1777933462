@@ -49,8 +49,8 @@ export function ModalAssumir({ evento, open, onClose }: Props) {
         .update({
           status: "em_andamento",
           dt_inicio: new Date().toISOString(),
-          usuario_inicio: profile?.nome || profile?.email,
-          observacao_inicio: observacao,
+          id_usuario_inicio: profile?.id,
+          observacao_inicio: `Assumido por ${profile?.nm_usuario}`,
           id_motivo_inicio: motivoId,
         })
         .eq("id", evento.id);

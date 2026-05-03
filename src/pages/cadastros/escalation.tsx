@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Search, Plus, Edit, AlertCircle } from "lucide-react";
+import { Search, Plus, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type EscalationItem = {
@@ -38,7 +38,7 @@ export default function EscalationList() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<EscalationItem | null>(null);
   const [formData, setFormData] = useState({
-    pessoa: "",
+    nm_pessoa: "",
     contato: "",
     telegram_chat_id: "",
     id_tipo_evento: "",
@@ -172,7 +172,6 @@ export default function EscalationList() {
     }
   };
 
-  // Admin has unrestricted access
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
       <div className="flex items-center justify-center h-screen">

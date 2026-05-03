@@ -51,8 +51,8 @@ export function ModalEncerrar({ evento, open, onClose }: Props) {
         .update({
           status: "encerrado",
           dt_fim: new Date().toISOString(),
-          usuario_fim: profile?.nome || profile?.email,
-          observacao_fim: observacao,
+          id_usuario_fim: profile?.id,
+          observacao_fim: `Encerrado por ${profile?.nm_usuario}`,
           id_motivo_fim: motivoId,
         })
         .eq("id", evento.id);

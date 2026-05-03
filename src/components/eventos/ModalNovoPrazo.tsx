@@ -49,7 +49,7 @@ export function ModalNovoPrazo({ evento, open, onClose }: Props) {
           dt_prazo: prazo,
           nivel: evento.nivel_escalonamento + 1,
           observacao: `[NOVO PRAZO] ${justificativa}`,
-          usuario: profile?.nome || profile?.email,
+          usuario: profile?.nm_usuario || profile?.email,
         });
 
       if (logError) throw logError;

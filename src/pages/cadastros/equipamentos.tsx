@@ -18,13 +18,16 @@ type Equipamento = {
   id: string;
   cd_equipamento: string;
   nm_equipamento: string;
-  id_grupo?: string;
-  id_tipo?: string;
-  id_unidade?: string;
+  id_grupo: string;
+  id_tipo: string;
+  id_unidade: string;
   ativo: boolean;
   grupo?: { nm_grupo: string };
   tipo?: { nm_tipo: string };
   unidade?: { nm_unidade: string };
+  nm_grupo?: string;
+  nm_tipo?: string;
+  nm_unidade?: string;
 };
 
 export default function Equipamentos() {

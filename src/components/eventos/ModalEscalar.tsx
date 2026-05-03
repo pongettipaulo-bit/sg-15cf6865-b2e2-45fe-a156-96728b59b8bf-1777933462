@@ -68,7 +68,8 @@ export function ModalEscalar({ evento, open, onClose }: Props) {
           dt_prazo: prazo,
           nivel: evento.nivel_escalonamento + 1,
           observacao,
-          usuario: profile?.nome || profile?.email,
+          observacao_inicio: observacao || `Escalado por ${profile?.nm_usuario}`,
+          usuario: profile?.nm_usuario || profile?.email,
         });
 
       if (logError) throw logError;

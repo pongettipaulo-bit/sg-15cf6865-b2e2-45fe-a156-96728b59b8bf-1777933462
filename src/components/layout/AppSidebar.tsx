@@ -81,7 +81,7 @@ export function AppSidebar() {
       <div className="p-4 border-t border-sidebar/20">
         {profile && !collapsed && (
           <div className="mb-3 px-3 py-2 bg-sidebar/20 rounded-lg">
-            <p className="text-sm font-medium text-white">{profile.nome}</p>
+            <p className="text-sm font-medium text-white">{profile.nm_usuario}</p>
             <p className="text-xs text-white/60 capitalize">{profile.perfil}</p>
           </div>
         )}
