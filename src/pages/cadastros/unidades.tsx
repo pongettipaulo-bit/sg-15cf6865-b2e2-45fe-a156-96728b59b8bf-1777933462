@@ -106,10 +106,11 @@ export default function Unidades() {
       String(u.nm_unidade ?? "").toLowerCase().includes(searchTerm.toLowerCase());
   }) ?? [];
 
+  // Admin has unrestricted access
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
-      <div className="flex items-center justify-center h-96">
-        <p className="text-muted-foreground">Acesso restrito</p>
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-muted-foreground">Sem permissão para acessar esta página.</p>
       </div>
     );
   }

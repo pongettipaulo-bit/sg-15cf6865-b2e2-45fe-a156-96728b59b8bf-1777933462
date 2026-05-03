@@ -193,13 +193,11 @@ export default function TiposEvento() {
     }
   };
 
+  // Admin has unrestricted access
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
-      <div className="p-8">
-        <div className="flex items-center gap-3 text-destructive">
-          <AlertCircle className="w-5 h-5" />
-          <p>Acesso negado. Apenas Admin e Avançado podem acessar esta página.</p>
-        </div>
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-muted-foreground">Sem permissão para acessar esta página.</p>
       </div>
     );
   }

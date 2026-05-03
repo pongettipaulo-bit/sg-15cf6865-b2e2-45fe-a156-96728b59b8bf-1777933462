@@ -51,9 +51,11 @@ const STATUS_COLUMNS = [
 ];
 
 export default function Eventos() {
+  const [activeTab, setActiveTab] = useState<"kanban" | "lista" | "equipamento">("kanban");
   const [searchTerm, setSearchTerm] = useState("");
   const [criticidadeFilter, setCriticidadeFilter] = useState<string>("todas");
   const [categoriaFilter, setCategoriaFilter] = useState<string>("todas");
+  const [equipamentoFilter, setEquipamentoFilter] = useState<string>("todos");
 
   // Modal states
   const [modalAssumir, setModalAssumir] = useState<Evento | null>(null);

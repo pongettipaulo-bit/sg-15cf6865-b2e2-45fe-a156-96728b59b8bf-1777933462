@@ -32,6 +32,15 @@ export default function Equipamentos() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Admin has unrestricted access
+  if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-muted-foreground">Sem permissão para acessar esta página.</p>
+      </div>
+    );
+  }
+
   const [searchTerm, setSearchTerm] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<Equipamento | null>(null);
@@ -177,14 +186,6 @@ export default function Equipamentos() {
       String(e.cd_equipamento ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       String(e.nm_equipamento ?? "").toLowerCase().includes(searchTerm.toLowerCase());
   }) ?? [];
-
-  if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <p className="text-muted-foreground">Acesso restrito</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

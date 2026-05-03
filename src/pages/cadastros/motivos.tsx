@@ -40,6 +40,15 @@ export default function Motivos() {
     fg_ativo: true,
   });
 
+  // Admin has unrestricted access
+  if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-muted-foreground">Sem permissão para acessar esta página.</p>
+      </div>
+    );
+  }
+
   // Buscar motivos com join do tipo de evento
   const { data: motivos, isLoading } = useQuery({
     queryKey: ["motivos"],
@@ -132,14 +141,6 @@ export default function Motivos() {
     const matchesTipo = tipoFilter === "todos" || m.id_tipo_evento === tipoFilter;
     return matchesSearch && matchesTipo;
   }) ?? [];
-
-  if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
-    return (
-      <div className="p-8 text-center">
-        <p className="text-muted-foreground">Você não tem permissão para acessar esta página.</p>
-      </div>
-    );
-  }
 
   const resetForm = () => {
     setFormData({ motivo: "", id_tipo_evento: "", fg_ativo: true });

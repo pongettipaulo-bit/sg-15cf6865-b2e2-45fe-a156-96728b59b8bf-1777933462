@@ -4,81 +4,65 @@ import { useAuth } from "@/contexts/AuthProvider";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  allowedProfiles?: string[];
   requiredPermission?: string;
 }
 
 export function ProtectedRoute({
   children,
+  allowedProfiles,
   requiredPermission,
 }: ProtectedRouteProps) {
-  const { user, profile, loading } = useAuth();
   const router = useRouter();
+  const { session, profile, loading } = useAuth();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
-    }
-  }, [user, loading, router]);
+    // Wait for auth to load
+    if (loading) return;
 
+    // Not authenticated - redirect to login
+    if (!session) {
+      router.push("/login");
+      return;
+    }
+
+    // Admin has unrestricted access - skip all checks
+    if (profile?.perfil === "admin") return;
+
+    // Check profile-based access for non-admin users
+    if (allowedProfiles && !allowedProfiles.includes(profile?.perfil || "")) {
+      router.push("/dashboard");
+      return;
+    }
+
+    // Check permission-based access for non-admin users
+    if (requiredPermission && profile) {
+      // TODO: Implement permission check with cfg_permissao_perfil
+      // For now, allow access
+    }
+  }, [session, profile, loading, router, allowedProfiles, requiredPermission]);
+
+  // Show loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Carregando...</p>
-        </div>
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  if (!user || !profile) {
+  // Show nothing while redirecting
+  if (!session) return null;
+
+  // Admin bypasses all checks
+  if (profile?.perfil === "admin") {
+    return <>{children}</>;
+  }
+
+  // Check profile access for non-admin
+  if (allowedProfiles && !allowedProfiles.includes(profile?.perfil || "")) {
     return null;
   }
 
-  if (requiredPermission && !hasPermission(profile, requiredPermission)) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center max-w-md px-6">
-          <h2 className="text-2xl font-semibold mb-2">Acesso Negado</h2>
-          <p className="text-muted-foreground mb-6">
-            Você não tem permissão para acessar esta página.
-          </p>
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="text-primary hover:text-primary-dark underline"
-          >
-            Voltar ao Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return <>{children}</>;
-}
-
-function hasPermission(
-  profile: { perfil: string },
-  resource: string
-): boolean {
-  if (profile.perfil === "admin") return true;
-
-  const advancedResources = [
-    "eventos",
-    "equipamentos",
-    "relatorios",
-    "configuracoes",
-    "cadastros",
-  ];
-  const basicResources = ["eventos", "equipamentos"];
-
-  if (profile.perfil === "avancado") {
-    return advancedResources.includes(resource);
-  }
-
-  if (profile.perfil === "basico") {
-    return basicResources.includes(resource);
-  }
-
-  return false;
 }

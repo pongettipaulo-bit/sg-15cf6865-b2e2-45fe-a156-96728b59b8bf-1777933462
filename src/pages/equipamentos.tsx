@@ -43,6 +43,8 @@ const CRITICIDADE_COLORS = {
 export default function Equipamentos() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEquipamento, setSelectedEquipamento] = useState<Equipamento | null>(null);
+  const [selectedEquip, setSelectedEquip] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { data: equipamentos, isLoading } = useQuery({
     queryKey: ["equipamentos"],

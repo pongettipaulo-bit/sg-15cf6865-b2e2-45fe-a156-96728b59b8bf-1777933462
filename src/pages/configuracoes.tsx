@@ -188,10 +188,11 @@ export default function Configuracoes() {
     return perm?.permitido || false;
   };
 
+  // Admin has unrestricted access
   if (profile?.perfil !== "admin") {
     return (
-      <div className="flex items-center justify-center h-96">
-        <p className="text-muted-foreground">Acesso restrito a administradores</p>
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-muted-foreground">Sem permissão para acessar esta página.</p>
       </div>
     );
   }

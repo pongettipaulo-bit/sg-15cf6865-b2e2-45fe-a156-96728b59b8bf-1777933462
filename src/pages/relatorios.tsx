@@ -40,9 +40,9 @@ type EventoRelatorio = {
 };
 
 export default function Relatorios() {
-  const [periodo, setPeriodo] = useState<string>("7");
-  const [dataInicio, setDataInicio] = useState<string>("");
-  const [dataFim, setDataFim] = useState<string>("");
+  const [periodo, setPeriodo] = useState<"hoje" | "7d" | "30d" | "custom">("7d");
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["relatorios", periodo, dataInicio, dataFim],
