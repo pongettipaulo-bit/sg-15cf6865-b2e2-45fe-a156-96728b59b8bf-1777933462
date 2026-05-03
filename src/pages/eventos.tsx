@@ -513,34 +513,26 @@ export default function Eventos() {
       </Tabs>
 
       {/* Modals */}
-      {modalAssumir && (
-        <ModalAssumir
-          evento={modalAssumir}
-          open={!!modalAssumir}
-          onClose={() => setModalAssumir(null)}
-        />
-      )}
-      {modalEscalar && (
-        <ModalEscalar
-          evento={eventoSelecionado}
-          open={modalEscalar}
-          onOpenChange={setModalEscalar}
-        />
-      )}
-      {modalEncerrar && (
-        <ModalEncerrar
-          evento={modalEncerrar}
-          open={!!modalEncerrar}
-          onClose={() => setModalEncerrar(null)}
-        />
-      )}
-      {modalNovoPrazo && (
-        <ModalNovoPrazo
-          evento={modalNovoPrazo}
-          open={!!modalNovoPrazo}
-          onClose={() => setModalNovoPrazo(null)}
-        />
-      )}
+      <ModalAssumir
+        evento={eventoSelecionado}
+        open={modalAssumir}
+        onOpenChange={setModalAssumir}
+      />
+      <ModalEscalar
+        evento={eventoSelecionado}
+        open={modalEscalar}
+        onOpenChange={setModalEscalar}
+      />
+      <ModalNovoPrazo
+        evento={eventoSelecionado}
+        open={modalNovoPrazo}
+        onOpenChange={setModalNovoPrazo}
+      />
+      <ModalEncerrar
+        evento={eventoSelecionado}
+        open={modalEncerrar}
+        onOpenChange={setModalEncerrar}
+      />
     </div>
   );
 }
