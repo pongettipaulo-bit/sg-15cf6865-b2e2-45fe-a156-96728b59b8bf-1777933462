@@ -18,21 +18,21 @@ import { ModalNovoPrazo } from "@/components/eventos/ModalNovoPrazo";
 
 type Evento = {
   id: string;
-  status: string;
-  criado_em: string;
-  dt_prazo: string | null;
-  prazo_vencido: boolean;
-  nivel_escalonamento: number;
-  vl_tempo_duracao_max: number;
+  id_tipo_evento: string;
   nm_tipo_evento: string;
   criticidade: string;
-  nm_categoria: string;
-  nm_subcategoria: string;
+  status: string;
+  dt_prazo: string;
+  prazo_vencido: boolean;
+  id_equipamento: string;
   nm_equipamento: string;
-  nm_operacao: string;
-  dt_inicio: string | null;
-  dt_fim: string | null;
-  id_tipo_evento?: string;
+  nivel_escalonamento: number;
+  vl_tempo_duracao_max: number;
+  criado_em: string;
+  observacao_inicio?: string;
+  observacao_fim?: string;
+  id_motivo?: string;
+  nm_motivo?: string;
 };
 
 const CRITICIDADE_COLORS = {
