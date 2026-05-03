@@ -62,10 +62,11 @@ export default function Eventos() {
   const [equipamentoFilter, setEquipamentoFilter] = useState<string>("todos");
 
   // Modal states
-  const [modalAssumir, setModalAssumir] = useState<Evento | null>(null);
-  const [modalEscalar, setModalEscalar] = useState<Evento | null>(null);
-  const [modalEncerrar, setModalEncerrar] = useState<Evento | null>(null);
-  const [modalNovoPrazo, setModalNovoPrazo] = useState<Evento | null>(null);
+  const [modalAssumir, setModalAssumir] = useState(false);
+  const [modalEscalar, setModalEscalar] = useState(false);
+  const [modalEncerrar, setModalEncerrar] = useState(false);
+  const [modalNovoPrazo, setModalNovoPrazo] = useState(false);
+  const [eventoSelecionado, setEventoSelecionado] = useState<Evento | null>(null);
 
   const { data: eventos, isLoading } = useQuery({
     queryKey: ["eventos-abertos"],
@@ -175,6 +176,11 @@ export default function Eventos() {
     if (segundos < 1800) return "text-muted-foreground"; // < 30min
     if (segundos < 3600) return "text-warning"; // 30-60min
     return "text-destructive"; // > 60min
+  };
+
+  const abrirModalEscalar = (evento: Evento) => {
+    setEventoSelecionado(evento);
+    setModalEscalar(true);
   };
 
   if (isLoading) {
