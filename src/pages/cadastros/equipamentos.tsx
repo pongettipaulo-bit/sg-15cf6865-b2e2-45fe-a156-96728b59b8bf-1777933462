@@ -116,7 +116,7 @@ export default function Equipamentos() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["equipamentos_crud"] });
+      queryClient.invalidateQueries({ queryKey: ["equipamentos-cadastro"] });
       toast({ title: "Status atualizado com sucesso" });
     },
     onError: () => toast({ title: "Erro ao atualizar status", variant: "destructive" }),
@@ -138,7 +138,7 @@ export default function Equipamentos() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["equipamentos_crud"] });
+      queryClient.invalidateQueries({ queryKey: ["equipamentos-cadastro"] });
       toast({ title: editando ? "Equipamento atualizado" : "Equipamento criado" });
       fecharModal();
     },
@@ -184,7 +184,6 @@ export default function Equipamentos() {
     salvar.mutate(formData);
   };
 
-  // Admin has unrestricted access
   if (profile?.perfil !== "admin" && profile?.perfil !== "avancado") {
     return (
       <div className="flex items-center justify-center h-screen">
