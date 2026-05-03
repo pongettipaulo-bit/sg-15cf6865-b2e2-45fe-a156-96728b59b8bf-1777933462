@@ -178,9 +178,24 @@ export default function Eventos() {
     return "text-destructive"; // > 60min
   };
 
+  const abrirModalAssumir = (evento: Evento) => {
+    setEventoSelecionado(evento);
+    setModalAssumir(true);
+  };
+
   const abrirModalEscalar = (evento: Evento) => {
     setEventoSelecionado(evento);
     setModalEscalar(true);
+  };
+
+  const abrirModalEncerrar = (evento: Evento) => {
+    setEventoSelecionado(evento);
+    setModalEncerrar(true);
+  };
+
+  const abrirModalNovoPrazo = (evento: Evento) => {
+    setEventoSelecionado(evento);
+    setModalNovoPrazo(true);
   };
 
   if (isLoading) {
@@ -402,8 +417,8 @@ export default function Eventos() {
                           {evento.status === "pendente" && (
                             <Button 
                               size="sm" 
-                              className="w-full"
-                              onClick={() => setModalAssumir(evento)}
+                              variant="outline"
+                              onClick={() => abrirModalAssumir(evento)}
                             >
                               Assumir
                             </Button>
@@ -414,14 +429,14 @@ export default function Eventos() {
                                 size="sm" 
                                 variant="outline" 
                                 className="flex-1"
-                                onClick={() => setModalEscalar(evento)}
+                                onClick={() => abrirModalEscalar(evento)}
                               >
                                 Escalar
                               </Button>
                               <Button 
                                 size="sm" 
-                                className="flex-1"
-                                onClick={() => setModalEncerrar(evento)}
+                                variant="outline"
+                                onClick={() => abrirModalEncerrar(evento)}
                               >
                                 Encerrar
                               </Button>
@@ -439,8 +454,8 @@ export default function Eventos() {
                               )}
                               <Button 
                                 size="sm" 
-                                className="w-full"
-                                onClick={() => setModalEncerrar(evento)}
+                                variant="outline"
+                                onClick={() => abrirModalEncerrar(evento)}
                               >
                                 Encerrar
                               </Button>
@@ -451,7 +466,7 @@ export default function Eventos() {
                               size="sm" 
                               variant="destructive" 
                               className="w-full"
-                              onClick={() => setModalNovoPrazo(evento)}
+                              onClick={() => abrirModalNovoPrazo(evento)}
                             >
                               Novo Prazo
                             </Button>
