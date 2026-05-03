@@ -501,9 +501,9 @@ export default function Eventos() {
       )}
       {modalEscalar && (
         <ModalEscalar
-          evento={modalEscalar}
-          open={!!modalEscalar}
-          onClose={() => setModalEscalar(null)}
+          evento={eventoSelecionado}
+          open={modalEscalar}
+          onOpenChange={setModalEscalar}
         />
       )}
       {modalEncerrar && (
