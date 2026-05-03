@@ -75,9 +75,15 @@ export default function Equipamentos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dim_grupo_equipamento")
-        .select("id, nm_grupo_equipamento")
+        .select("id, cd_grupo_equipamento, nm_grupo_equipamento")
         .order("nm_grupo_equipamento");
-      if (error) throw error;
+      
+      if (error) {
+        console.error("Erro ao carregar grupos:", error);
+        throw error;
+      }
+      
+      console.log("Grupos de equipamento carregados:", data?.length || 0);
       return data as GrupoEquipamento[];
     },
   });
@@ -87,9 +93,15 @@ export default function Equipamentos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dim_tipo_equipamento")
-        .select("id, nm_tipo_equipamento")
+        .select("id, cd_tipo_equipamento, nm_tipo_equipamento")
         .order("nm_tipo_equipamento");
-      if (error) throw error;
+      
+      if (error) {
+        console.error("Erro ao carregar tipos:", error);
+        throw error;
+      }
+      
+      console.log("Tipos de equipamento carregados:", data?.length || 0);
       return data as TipoEquipamento[];
     },
   });

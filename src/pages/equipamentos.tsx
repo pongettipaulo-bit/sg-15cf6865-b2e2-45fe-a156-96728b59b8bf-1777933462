@@ -52,26 +52,35 @@ export default function Equipamentos() {
       const { data, error } = await supabase
         .from("dim_equipamento")
         .select(`
-          *,
-          grupo:dim_grupo_equipamento(nm_grupo_equipamento),
-          tipo:dim_tipo_equipamento(nm_tipo_equipamento)
+          id,
+          cd_equipamento,
+          nm_equipamento,
+          ativo,
+          grupo:dim_grupo_equipamento(id, cd_grupo_equipamento, nm_grupo_equipamento),
+          tipo:dim_tipo_equipamento(id, cd_tipo_equipamento, nm_tipo_equipamento),
+          unidade:dim_unidade(id, cd_unidade, nm_unidade)
         `)
         .eq("ativo", true)
-        .order("nm_equipamento");
+        .order("cd_equipamento");
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao carregar equipamentos:", error);
+        throw error;
+      }
 
-      return data.map((eq: any) => ({
-        id: eq.id,
-        cd_equipamento: eq.cd_equipamento,
-        nm_equipamento: eq.nm_equipamento,
-        nm_grupo: eq.grupo?.nm_grupo_equipamento || "Sem grupo",
-        nm_tipo: eq.tipo?.nm_tipo_equipamento || "Sem tipo",
-        fg_online: eq.fg_online || false,
-        total_eventos_abertos: 0,
-      })) as Equipamento[];
+      console.log("Equipamentos carregados:", data?.length || 0);
+      console.log("Exemplo de equipamento:", data?.[0]);
+
+      return data.map((e: any) => ({
+        id: e.id,
+        cd_equipamento: e.cd_equipamento,
+        nm_equipamento: e.nm_equipamento,
+        ativo: e.ativo,
+        nm_grupo: e.grupo?.nm_grupo_equipamento || "—",
+        nm_tipo: e.tipo?.nm_tipo_equipamento || "—",
+        nm_unidade: e.unidade?.nm_unidade || "—",
+      }));
     },
-    refetchInterval: 30000,
   });
 
   const { data: historico, isLoading: isLoadingHistorico } = useQuery({
