@@ -12,9 +12,10 @@ import { useToast } from "@/hooks/use-toast";
 
 type Evento = {
   id: string;
-  id_tipo_evento: string;
+  id_tipo_evento: number;
   nm_tipo_evento: string;
   nivel_escalonamento: number;
+  [key: string]: any;
 };
 
 type Contato = {
