@@ -50,6 +50,13 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
 
   const definirNovoPrazo = useMutation({
     mutationFn: async (data: { novoPrazo: string; justificativa: string; idContato: number }) => {
+      console.log("🚀 Iniciando mutação de novo prazo:", {
+        eventoId: evento.id,
+        novoPrazo: data.novoPrazo,
+        idContato: data.idContato,
+        nivelAtual: evento.nivel_escalonamento,
+      });
+
       // Update fila_evento
       const { error: updateError } = await supabase
         .from("fila_evento")
@@ -61,36 +68,54 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
         .eq("id", evento.id);
 
       if (updateError) {
-        console.error("Erro ao atualizar evento:", updateError);
-        throw updateError;
+        console.error("❌ Erro ao atualizar fila_evento:", updateError);
+        throw new Error(`Erro ao atualizar evento: ${updateError.message}`);
       }
 
-      // Insert log_escalonamento
-      const { error: logError } = await supabase
-        .from("log_escalonamento")
-        .insert({
+      console.log("✅ Evento atualizado com sucesso");
+
+      // Try to insert log_escalonamento - if it fails, don't block the main action
+      try {
+        const logData = {
           id_evento: evento.id,
           id_contato: data.idContato,
           dt_escalonamento: new Date().toISOString(),
           dt_prazo: data.novoPrazo,
           nivel: (evento.nivel_escalonamento || 0) + 1,
           observacao: data.justificativa,
-        });
+        };
 
-      if (logError) {
-        console.error("Erro ao inserir log de escalonamento:", logError);
-        throw logError;
+        console.log("📝 Tentando inserir log_escalonamento:", logData);
+
+        const { error: logError } = await supabase
+          .from("log_escalonamento")
+          .insert(logData);
+
+        if (logError) {
+          console.warn("⚠️ Erro ao inserir log (não crítico):", logError);
+          // Don't throw - log is optional
+        } else {
+          console.log("✅ Log de escalonamento inserido");
+        }
+      } catch (logError) {
+        console.warn("⚠️ Exceção ao inserir log (não crítico):", logError);
+        // Don't throw - log is optional
       }
     },
     onSuccess: () => {
+      console.log("✅ Mutação concluída com sucesso");
       queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
       queryClient.invalidateQueries({ queryKey: ["eventos-encerrados-hoje"] });
       onOpenChange(false);
       toast({ title: "Novo prazo definido com sucesso" });
     },
-    onError: (error) => {
-      console.error("Erro completo:", error);
-      toast({ title: "Erro ao definir novo prazo", variant: "destructive" });
+    onError: (error: any) => {
+      console.error("❌ Erro completo na mutação:", error);
+      toast({ 
+        title: "Erro ao definir novo prazo", 
+        description: error?.message || "Erro desconhecido",
+        variant: "destructive" 
+      });
     },
   });
 
