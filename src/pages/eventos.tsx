@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -85,11 +85,23 @@ export default function Eventos() {
     queryFn: async () => {
       const hoje = new Date().toISOString().split("T")[0];
       
-      const { count: encerrados } = await supabase
+      const { data: encerrados, error: errorEncerrados } = await supabase
         .from("fila_evento")
-        .select("*", { count: "exact", head: true })
+        .select(`
+          *,
+          tipo_evento:dim_tipo_evento(nm_tipo_evento, criticidade),
+          equipamento:dim_equipamento(nm_equipamento),
+          categoria:dim_categoria_evento(nm_categoria),
+          subcategoria:dim_subcategoria_evento(nm_subcategoria),
+          operacao:dim_operacao(nm_operacao)
+        `)
         .eq("status", "encerrado")
-        .gte("dt_fim", hoje);
+        .gte("dt_fim", hoje)
+        .order("dt_fim", { ascending: false });
+
+      if (errorEncerrados) {
+        console.error("Erro ao carregar encerrados:", errorEncerrados);
+      }
 
       const { count: cancelados } = await supabase
         .from("fila_evento")
@@ -97,13 +109,74 @@ export default function Eventos() {
         .eq("status", "cancelado")
         .gte("dt_fim", hoje);
 
+      const eventosEncerradosHoje = (encerrados || []).map((e: any) => ({
+        id: e.id,
+        id_tipo_evento: e.id_tipo_evento,
+        id_equipamento: e.id_equipamento,
+        id_operacao: e.id_operacao,
+        id_operador: e.id_operador,
+        id_unidade: e.id_unidade,
+        nm_tipo_evento: e.tipo_evento?.nm_tipo_evento || "",
+        nm_equipamento: e.equipamento?.nm_equipamento || "",
+        nm_operacao: e.operacao?.nm_operacao || "",
+        nm_operador: "",
+        nm_unidade: "",
+        criticidade: e.tipo_evento?.criticidade || "media",
+        status: "encerrado",
+        dt_prazo: null,
+        dt_fim: e.dt_fim,
+        prazo_vencido: false,
+        nm_categoria: e.categoria?.nm_categoria || "",
+        nm_subcategoria: e.subcategoria?.nm_subcategoria || "",
+        nivel_escalonamento: 0,
+        vl_tempo_duracao_max: 0,
+        criado_em: e.criado_em,
+        observacao_fim: e.observacao_fim,
+        tp_encerramento: e.tp_encerramento,
+      }));
+
       return {
-        encerrados: encerrados || 0,
+        encerrados: encerrados?.length || 0,
         cancelados: cancelados || 0,
+        eventosEncerradosHoje,
       };
     },
     refetchInterval: 30000,
   });
+
+  const eventosFiltrados = useMemo(() => {
+    let filtered = [...(eventos || [])];
+    
+    // Add closed events to the filtered list
+    if (eventosEncerrados?.eventosEncerradosHoje) {
+      filtered = [...filtered, ...eventosEncerrados.eventosEncerradosHoje];
+    }
+
+    // Apply filters
+    if (filtroCriticidade !== "todas") {
+      filtered = filtered.filter((e) => e.criticidade === filtroCriticidade);
+    }
+
+    if (filtroStatus !== "todos") {
+      filtered = filtered.filter((e) => e.status === filtroStatus);
+    }
+
+    if (filtroCategoria !== "todas") {
+      filtered = filtered.filter((e) => e.nm_categoria === filtroCategoria);
+    }
+
+    if (buscaTexto) {
+      const termo = buscaTexto.toLowerCase();
+      filtered = filtered.filter(
+        (e) =>
+          e.nm_tipo_evento?.toLowerCase().includes(termo) ||
+          e.nm_equipamento?.toLowerCase().includes(termo) ||
+          e.nm_categoria?.toLowerCase().includes(termo)
+      );
+    }
+
+    return filtered;
+  }, [eventos, eventosEncerrados, filtroCriticidade, filtroStatus, filtroCategoria, buscaTexto]);
 
   const encerrarSemTratativa = useMutation({
     mutationFn: async (evento: Evento) => {
@@ -531,6 +604,62 @@ export default function Eventos() {
             </div>
           </div>
         )}
+
+        {/* Encerrado Hoje Column */}
+        <div className="min-w-80">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">Encerrado Hoje ({filteredEventos.filter((e) => e.status === "encerrado").length})</h3>
+          </div>
+          <div className="space-y-3">
+            {filteredEventos
+              .filter((e) => e.status === "encerrado")
+              .map((evento) => (
+                <div
+                  key={evento.id}
+                  className="bg-card border rounded-lg p-4 hover:shadow-md transition-shadow opacity-60"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <span
+                      className={`text-xs px-2 py-1 rounded ${
+                        evento.criticidade === "critica"
+                          ? "bg-destructive-bg text-destructive"
+                          : evento.criticidade === "alta"
+                          ? "bg-warning-bg text-[#633806]"
+                          : evento.criticidade === "media"
+                          ? "bg-primary-light text-primary-dark"
+                          : "bg-success-bg text-[#27500A]"
+                      }`}
+                    >
+                      {(evento.criticidade || "media").toUpperCase()}
+                    </span>
+                  </div>
+                  <h4 className="font-semibold mb-2 line-through">{evento.nm_tipo_evento}</h4>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {evento.nm_equipamento} — {evento.nm_operacao}
+                  </p>
+                  <div className="flex gap-2 flex-wrap mb-3">
+                    <span className="text-xs px-2 py-1 bg-muted rounded">
+                      {evento.nm_categoria}
+                    </span>
+                    {evento.nm_subcategoria && (
+                      <span className="text-xs px-2 py-1 bg-muted rounded">
+                        {evento.nm_subcategoria}
+                      </span>
+                    )}
+                  </div>
+                  {evento.tp_encerramento && (
+                    <p className="text-xs text-muted-foreground">
+                      {evento.tp_encerramento === "tratativa"
+                        ? "Com tratativa"
+                        : evento.tp_encerramento === "sem_tratativa"
+                        ? "Sem tratativa"
+                        : "Cancelado"}
+                    </p>
+                  )}
+                </div>
+              ))}
+          </div>
+        </div>
       </div>
 
       <ModalAssumir
