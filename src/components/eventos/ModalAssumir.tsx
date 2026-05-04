@@ -28,6 +28,8 @@ type ModalAssumirProps = {
 };
 
 export function ModalAssumir({ evento, open, onOpenChange }: ModalAssumirProps) {
+  if (!evento) return null;
+
   const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();

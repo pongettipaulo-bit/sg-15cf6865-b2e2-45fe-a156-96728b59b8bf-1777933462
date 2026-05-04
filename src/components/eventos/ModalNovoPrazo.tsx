@@ -22,15 +22,9 @@ type Contato = {
   contato: string;
 };
 
-export function ModalNovoPrazo({
-  evento,
-  open,
-  onOpenChange,
-}: {
-  evento: Evento;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
+export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoProps) {
+  if (!evento) return null;
+
   const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();

@@ -33,6 +33,8 @@ type ModalEscalarProps = {
 };
 
 export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) {
+  if (!evento) return null;
+
   const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
