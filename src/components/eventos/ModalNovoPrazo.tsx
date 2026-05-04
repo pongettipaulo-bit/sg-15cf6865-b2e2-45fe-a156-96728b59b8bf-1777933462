@@ -2,17 +2,18 @@ import { useState } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthProvider";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
-type ModalNovoPrazoProps = {
-  evento: any;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+type Evento = {
+  id: string;
+  id_tipo_evento: number;
+  nivel_escalonamento: number;
 };
 
 type Contato = {
@@ -21,49 +22,52 @@ type Contato = {
   contato: string;
 };
 
-export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoProps) {
+export function ModalNovoPrazo({
+  evento,
+  open,
+  onOpenChange,
+}: {
+  evento: Evento;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [novoPrazo, setNovoPrazo] = useState("");
   const [justificativa, setJustificativa] = useState("");
-  const [idContato, setIdContato] = useState("");
+  const [contatoSelecionado, setContatoSelecionado] = useState<string>("");
 
   const { data: contatos } = useQuery({
-    queryKey: ["escalation-contatos", evento?.id_tipo_evento],
+    queryKey: ["escalation-contatos", evento.id_tipo_evento],
     queryFn: async () => {
-      if (!evento?.id_tipo_evento) return [];
-      
       const { data, error } = await supabase
         .from("dim_escalation_list")
-        .select("id, nm_pessoa, contato")
+        .select("*")
         .eq("id_tipo_evento", evento.id_tipo_evento)
         .eq("ativo", true)
         .order("ordem");
-
       if (error) throw error;
       return data as Contato[];
     },
-    enabled: !!evento?.id_tipo_evento,
+    enabled: open && !!evento.id_tipo_evento,
   });
 
   const definirNovoPrazo = useMutation({
-    mutationFn: async (data: { novoPrazo: string; justificativa: string; idContato: number }) => {
-      console.log("🚀 Iniciando mutação de novo prazo:", {
-        eventoId: evento.id,
-        novoPrazo: data.novoPrazo,
-        idContato: data.idContato,
-        nivelAtual: evento.nivel_escalonamento,
-      });
+    mutationFn: async () => {
+      console.log("🚀 Iniciando mutação de novo prazo");
+
+      const novoNivel = (evento.nivel_escalonamento ?? 0) + 1;
 
       // Update fila_evento
       const { error: updateError } = await supabase
         .from("fila_evento")
         .update({
           status: "escalado",
-          dt_prazo: data.novoPrazo,
-          nivel_escalonamento: (evento.nivel_escalonamento || 0) + 1,
+          dt_prazo: novoPrazo,
+          nivel_escalonamento: novoNivel,
+          prazo_vencido: false,
         })
         .eq("id", evento.id);
 
@@ -74,97 +78,75 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
 
       console.log("✅ Evento atualizado com sucesso");
 
-      // Try to insert log_escalonamento - if it fails, don't block the main action
-      try {
-        const logData = {
-          id_evento: evento.id,
-          id_contato: data.idContato,
-          dt_escalonamento: new Date().toISOString(),
-          dt_prazo: data.novoPrazo,
-          nivel: (evento.nivel_escalonamento || 0) + 1,
-          observacao: data.justificativa,
-        };
+      // Insert log_escalonamento
+      const contatoId = contatoSelecionado ? Number(contatoSelecionado) : null;
+      const contato = contatos?.find(c => c.id === contatoId);
 
-        console.log("📝 Tentando inserir log_escalonamento:", logData);
+      const logData = {
+        id_fila_evento: evento.id,
+        nivel: novoNivel,
+        dt_prazo: novoPrazo,
+        id_usuario: profile?.id ?? null,
+        nm_contato: contato?.nm_pessoa ?? null,
+        observacao: justificativa || null,
+      };
 
-        const { error: logError } = await supabase
-          .from("log_escalonamento")
-          .insert(logData);
+      console.log("📝 Inserindo log_escalonamento:", logData);
 
-        if (logError) {
-          console.warn("⚠️ Erro ao inserir log (não crítico):", logError);
-          // Don't throw - log is optional
-        } else {
-          console.log("✅ Log de escalonamento inserido");
-        }
-      } catch (logError) {
-        console.warn("⚠️ Exceção ao inserir log (não crítico):", logError);
-        // Don't throw - log is optional
+      const { error: logError } = await supabase
+        .from("log_escalonamento")
+        .insert(logData);
+
+      if (logError) {
+        console.error("❌ Erro ao inserir log:", logError);
+        throw new Error(`Erro ao registrar log: ${logError.message}`);
       }
+
+      console.log("✅ Log de escalonamento inserido");
     },
     onSuccess: () => {
       console.log("✅ Mutação concluída com sucesso");
       queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
       queryClient.invalidateQueries({ queryKey: ["eventos-encerrados-hoje"] });
       onOpenChange(false);
+      setNovoPrazo("");
+      setJustificativa("");
+      setContatoSelecionado("");
       toast({ title: "Novo prazo definido com sucesso" });
     },
     onError: (error: any) => {
       console.error("❌ Erro completo na mutação:", error);
-      toast({ 
-        title: "Erro ao definir novo prazo", 
+      toast({
+        title: "Erro ao definir novo prazo",
         description: error?.message || "Erro desconhecido",
-        variant: "destructive" 
+        variant: "destructive",
       });
     },
   });
 
-  const resetForm = () => {
-    setNovoPrazo("");
-    setJustificativa("");
-    setIdContato("");
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!novoPrazo) {
-      toast({ title: "Informe o novo prazo", variant: "destructive" });
+    if (!novoPrazo || !justificativa || !contatoSelecionado) {
+      toast({
+        title: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
       return;
     }
-
-    if (!idContato) {
-      toast({ title: "Selecione o contato acionado", variant: "destructive" });
-      return;
-    }
-
-    if (!justificativa || justificativa.length < 10) {
-      toast({ title: "Justificativa obrigatória (mín. 10 caracteres)", variant: "destructive" });
-      return;
-    }
-
-    definirNovoPrazo.mutate({ novoPrazo, justificativa, idContato: Number(idContato) });
-  };
-
-  const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) resetForm();
-    onOpenChange(isOpen);
+    definirNovoPrazo.mutate();
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Definir Novo Prazo</DialogTitle>
-          <DialogDescription>
-            Evento atrasado — reescalone com novo prazo
-          </DialogDescription>
+          <DialogDescription>Evento atrasado — rescalone com novo prazo</DialogDescription>
         </DialogHeader>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="contato">Contato Acionado*</Label>
-            <Select value={idContato} onValueChange={setIdContato}>
+            <Select value={contatoSelecionado} onValueChange={setContatoSelecionado}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o contato" />
               </SelectTrigger>
@@ -179,13 +161,12 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
           </div>
 
           <div>
-            <Label htmlFor="novo-prazo">Novo Prazo*</Label>
-            <input
-              id="novo-prazo"
+            <Label htmlFor="novoPrazo">Novo Prazo*</Label>
+            <Input
+              id="novoPrazo"
               type="datetime-local"
               value={novoPrazo}
               onChange={(e) => setNovoPrazo(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               required
             />
           </div>
@@ -195,25 +176,21 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
             <Textarea
               id="justificativa"
               value={justificativa}
-              onChange={(e) => setJustificativa(e.target.value)}
-              maxLength={280}
+              onChange={(e) => setJustificativa(e.target.value.slice(0, 280))}
               rows={3}
               required
-              placeholder="Justifique o novo prazo..."
+              minLength={10}
             />
-            <p className="text-xs text-muted-foreground mt-1 text-right">
+            <p className="text-xs text-muted-foreground text-right mt-1">
               {justificativa.length}/280
             </p>
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button 
-              type="submit" 
-              disabled={definirNovoPrazo.isPending}
-            >
+            <Button type="submit" disabled={definirNovoPrazo.isPending}>
               {definirNovoPrazo.isPending ? "Salvando..." : "Confirmar"}
             </Button>
           </DialogFooter>
