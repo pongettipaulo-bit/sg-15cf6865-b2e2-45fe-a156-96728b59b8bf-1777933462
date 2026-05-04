@@ -526,110 +526,70 @@ export default function Eventos() {
       </div>
 
       {/* Kanban */}
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {/* Coluna Pendente */}
-        <div className="flex-1 min-w-[280px]">
-          <div className="bg-muted/50 p-3 rounded-t-lg border-b-2 border-gray-400">
-            <h3 className="font-semibold text-sm">
-              Pendente ({eventosPorStatus.pendente})
-            </h3>
+      <div className="flex gap-6 overflow-x-auto pb-4">
+        {/* Pendente Column */}
+        <div className="min-w-80">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">Pendente ({eventosFiltrados.filter((e) => e.status === "pendente").length})</h3>
           </div>
-          <div className="space-y-3 p-3 min-h-[200px]">
-            {isLoading ? (
-              [1, 2, 3].map((i) => <Skeleton key={i} className="h-32" />)
-            ) : (
-              filteredEventos
-                .filter((e) => e.status === "pendente")
-                .map((evento) => <EventoCard key={evento.id} evento={evento} />)
-            )}
+          <div className="space-y-3">
+            {eventosFiltrados
+              .filter((e) => e.status === "pendente")
+              .map((evento) => (
+                <EventoCard key={evento.id} evento={evento} />
+              ))}
           </div>
         </div>
 
-        {/* Coluna Em Andamento */}
-        <div className="flex-1 min-w-[280px]">
-          <div className="bg-muted/50 p-3 rounded-t-lg border-b-2 border-primary">
-            <h3 className="font-semibold text-sm">
-              Em Andamento ({eventosPorStatus.em_andamento})
-            </h3>
+        {/* Em Andamento Column */}
+        <div className="min-w-80">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">Em Andamento ({eventosFiltrados.filter((e) => e.status === "em_andamento").length})</h3>
           </div>
-          <div className="space-y-3 p-3 min-h-[200px]">
-            {filteredEventos
+          <div className="space-y-3">
+            {eventosFiltrados
               .filter((e) => e.status === "em_andamento")
-              .map((evento) => <EventoCard key={evento.id} evento={evento} />)}
+              .map((evento) => (
+                <EventoCard key={evento.id} evento={evento} />
+              ))}
           </div>
         </div>
 
-        {/* Coluna Escalado */}
-        <div className="flex-1 min-w-[280px]">
-          <div className="bg-muted/50 p-3 rounded-t-lg border-b-2 border-purple-600">
-            <h3 className="font-semibold text-sm">
-              Escalado ({eventosPorStatus.escalado})
-            </h3>
+        {/* Escalado Column */}
+        <div className="min-w-80">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">Escalado ({eventosFiltrados.filter((e) => e.status === "escalado").length})</h3>
           </div>
-          <div className="space-y-3 p-3 min-h-[200px]">
-            {filteredEventos
+          <div className="space-y-3">
+            {eventosFiltrados
               .filter((e) => e.status === "escalado")
-              .map((evento) => <EventoCard key={evento.id} evento={evento} />)}
+              .map((evento) => (
+                <EventoCard key={evento.id} evento={evento} />
+              ))}
           </div>
         </div>
 
-        {/* Coluna Atrasado */}
-        <div className="flex-1 min-w-[280px]">
-          <div className="bg-muted/50 p-3 rounded-t-lg border-b-2 border-destructive">
-            <h3 className="font-semibold text-sm">
-              Atrasado ({eventosPorStatus.atrasado})
-            </h3>
+        {/* Atrasado Column */}
+        <div className="min-w-80">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">Atrasado ({eventosFiltrados.filter((e) => e.status === "atrasado").length})</h3>
           </div>
-          <div className="space-y-3 p-3 min-h-[200px]">
-            {filteredEventos
+          <div className="space-y-3">
+            {eventosFiltrados
               .filter((e) => e.status === "atrasado")
-              .map((evento) => <EventoCard key={evento.id} evento={evento} />)}
+              .map((evento) => (
+                <EventoCard key={evento.id} evento={evento} />
+              ))}
           </div>
         </div>
-
-        {/* Coluna Encerrado */}
-        <div className="flex-1 min-w-[280px]">
-          <div className="bg-muted/50 p-3 rounded-t-lg border-b-2 border-green-600">
-            <h3 className="font-semibold text-sm">
-              Encerrado Hoje ({eventosPorStatus.encerrado})
-            </h3>
-          </div>
-          <div className="space-y-3 p-3 min-h-[200px]">
-            {filteredEventos
-              .filter((e) => {
-                if (e.status !== "encerrado") return false;
-                if (!e.dt_fim) return false;
-                const hoje = new Date().toISOString().split("T")[0];
-                const dataFim = new Date(e.dt_fim).toISOString().split("T")[0];
-                return dataFim === hoje;
-              })
-              .map((evento) => <EventoCard key={evento.id} evento={evento} />)}
-          </div>
-        </div>
-
-        {/* Coluna Cancelado (só aparece se toggle ativo) */}
-        {mostrarCancelados && (
-          <div className="flex-1 min-w-[280px]">
-            <div className="bg-muted/50 p-3 rounded-t-lg border-b-2 border-gray-400">
-              <h3 className="font-semibold text-sm">
-                Cancelado ({eventosPorStatus.cancelado})
-              </h3>
-            </div>
-            <div className="space-y-3 p-3 min-h-[200px]">
-              {filteredEventos
-                .filter((e) => e.status === "cancelado")
-                .map((evento) => <EventoCard key={evento.id} evento={evento} />)}
-            </div>
-          </div>
-        )}
 
         {/* Encerrado Hoje Column */}
         <div className="min-w-80">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">Encerrado Hoje ({filteredEventos.filter((e) => e.status === "encerrado").length})</h3>
+            <h3 className="font-semibold">Encerrado Hoje ({eventosFiltrados.filter((e) => e.status === "encerrado").length})</h3>
           </div>
           <div className="space-y-3">
-            {filteredEventos
+            {eventosFiltrados
               .filter((e) => e.status === "encerrado")
               .map((evento) => (
                 <div
@@ -653,12 +613,14 @@ export default function Eventos() {
                   </div>
                   <h4 className="font-semibold mb-2 line-through">{evento.nm_tipo_evento}</h4>
                   <p className="text-sm text-muted-foreground mb-2">
-                    {evento.nm_equipamento} — {evento.nm_operacao}
+                    {evento.nm_equipamento} — {evento.nm_operacao || "—"}
                   </p>
                   <div className="flex gap-2 flex-wrap mb-3">
-                    <span className="text-xs px-2 py-1 bg-muted rounded">
-                      {evento.nm_categoria}
-                    </span>
+                    {evento.nm_categoria && (
+                      <span className="text-xs px-2 py-1 bg-muted rounded">
+                        {evento.nm_categoria}
+                      </span>
+                    )}
                     {evento.nm_subcategoria && (
                       <span className="text-xs px-2 py-1 bg-muted rounded">
                         {evento.nm_subcategoria}
@@ -668,14 +630,19 @@ export default function Eventos() {
                   {evento.tp_encerramento && (
                     <p className="text-xs text-muted-foreground">
                       {evento.tp_encerramento === "tratativa"
-                        ? "Com tratativa"
+                        ? "✓ Com tratativa"
                         : evento.tp_encerramento === "sem_tratativa"
-                        ? "Sem tratativa"
-                        : "Cancelado"}
+                        ? "○ Sem tratativa"
+                        : "✗ Cancelado"}
                     </p>
                   )}
                 </div>
               ))}
+            {eventosFiltrados.filter((e) => e.status === "encerrado").length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Nenhum evento encerrado hoje
+              </p>
+            )}
           </div>
         </div>
       </div>
