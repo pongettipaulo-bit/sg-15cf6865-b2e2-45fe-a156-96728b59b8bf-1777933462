@@ -91,6 +91,8 @@ export default function Eventos() {
     queryFn: async () => {
       const hoje = new Date().toISOString().split("T")[0];
       
+      console.log("🔍 Buscando eventos encerrados desde:", hoje);
+      
       // Simplified query - just get IDs and basic fields
       const { data: encerrados, error: errorEncerrados } = await supabase
         .from("fila_evento")
@@ -100,9 +102,11 @@ export default function Eventos() {
         .order("dt_fim", { ascending: false });
 
       if (errorEncerrados) {
-        console.error("Erro ao carregar encerrados:", errorEncerrados);
+        console.error("❌ Erro ao carregar encerrados:", errorEncerrados);
         return { encerrados: 0, cancelados: 0, eventosEncerradosHoje: [] };
       }
+
+      console.log("✅ Eventos encerrados encontrados:", encerrados?.length || 0);
 
       const { count: cancelados } = await supabase
         .from("fila_evento")
@@ -138,7 +142,7 @@ export default function Eventos() {
             nm_operador: "",
             nm_unidade: "",
             criticidade: tipoEvento?.criticidade || "media",
-            status: "encerrado",
+            status: "encerrado" as const,
             dt_prazo: null,
             dt_fim: e.dt_fim,
             prazo_vencido: false,
@@ -153,6 +157,8 @@ export default function Eventos() {
         })
       );
 
+      console.log("📦 Eventos processados para o kanban:", eventosComDados.length);
+
       return {
         encerrados: encerrados?.length || 0,
         cancelados: cancelados || 0,
@@ -165,10 +171,15 @@ export default function Eventos() {
   const eventosFiltrados = useMemo(() => {
     let filtered = [...(eventos || [])];
     
+    console.log("📊 Eventos abertos (view):", filtered.length);
+    
     // Add closed events to the filtered list
     if (eventosEncerrados?.eventosEncerradosHoje) {
+      console.log("📊 Eventos encerrados hoje:", eventosEncerrados.eventosEncerradosHoje.length);
       filtered = [...filtered, ...eventosEncerrados.eventosEncerradosHoje];
     }
+
+    console.log("📊 Total de eventos (abertos + encerrados):", filtered.length);
 
     // Apply filters
     if (filtroCriticidade !== "todas") {
@@ -192,6 +203,14 @@ export default function Eventos() {
           e.nm_categoria?.toLowerCase().includes(termo)
       );
     }
+
+    console.log("📊 Eventos após filtros:", filtered.length, {
+      encerrados: filtered.filter(e => e.status === "encerrado").length,
+      pendentes: filtered.filter(e => e.status === "pendente").length,
+      em_andamento: filtered.filter(e => e.status === "em_andamento").length,
+      escalados: filtered.filter(e => e.status === "escalado").length,
+      atrasados: filtered.filter(e => e.status === "atrasado").length,
+    });
 
     return filtered;
   }, [eventos, eventosEncerrados, filtroCriticidade, filtroStatus, filtroCategoria, buscaTexto]);
