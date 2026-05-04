@@ -22,8 +22,6 @@ type Props = {
 };
 
 export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
-  if (!evento) return null;
-
   const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -64,6 +62,8 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
       },
     });
   };
+
+  if (!evento) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

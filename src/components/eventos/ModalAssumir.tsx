@@ -28,48 +28,41 @@ type ModalAssumirProps = {
 };
 
 export function ModalAssumir({ evento, open, onOpenChange }: ModalAssumirProps) {
-  if (!evento) return null;
-
   const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [motivoId, setMotivoId] = useState("");
-  const [observacao, setObservacao] = useState("");
+  const [observacaoInicio, setObservacaoInicio] = useState("");
+  const [descricaoProblema, setDescricaoProblema] = useState("");
 
-  const { data: motivos, isLoading: loadingMotivos } = useQuery({
-    queryKey: ["motivos-evento", evento?.id_tipo_evento],
+  const { data: operadores } = useQuery({
+    queryKey: ["operadores-ativos"],
     queryFn: async () => {
-      if (!evento?.id_tipo_evento) {
-        console.log("ModalAssumir: id_tipo_evento está vazio", evento);
-        return [];
-      }
-
-      console.log("ModalAssumir: Buscando motivos para id_tipo_evento:", evento.id_tipo_evento);
-
       const { data, error } = await supabase
-        .from("dim_motivo_evento")
-        .select("id, nm_motivo")
-        .eq("id_tipo_evento", evento.id_tipo_evento)
+        .from("dim_operador")
+        .select("*")
         .eq("ativo", true)
-        .order("nm_motivo");
-
-      if (error) {
-        console.error("Erro ao buscar motivos:", error);
-        throw error;
-      }
-
-      console.log("ModalAssumir: Motivos encontrados:", data);
-      return data as Motivo[];
+        .order("nm_operador");
+      if (error) throw error;
+      return data;
     },
-    enabled: !!evento?.id_tipo_evento && open,
+    enabled: open,
   });
 
   const assumirEvento = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async (data: { observacaoInicio: string; descricaoProblema: string }) => {
+      if (!evento) return;
+      
       const { error } = await supabase
         .from("fila_evento")
-        .update(data)
-        .eq("id", id);
+        .update({
+          status: "em_andamento",
+          id_usuario_inicio: profile?.id,
+          dt_inicio: new Date().toISOString(),
+          observacao_inicio: data.observacaoInicio,
+          ds_problema: data.descricaoProblema,
+        })
+        .eq("id", evento.id);
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -78,36 +71,14 @@ export function ModalAssumir({ evento, open, onOpenChange }: ModalAssumirProps) 
       onOpenChange(false);
       toast({ title: "Evento assumido com sucesso" });
     },
-    onError: (error) => {
-      console.error("Erro ao assumir evento:", error);
+    onError: () => {
       toast({ title: "Erro ao assumir evento", variant: "destructive" });
     },
   });
 
-  const resetForm = () => {
-    setMotivoId("");
-    setObservacao("");
-  };
+  if (!evento) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!evento || !profile) return;
-
-    if (!motivoId) {
-      toast({ title: "Selecione um motivo", variant: "destructive" });
-      return;
-    }
-
-    await assumirEvento.mutateAsync({
-      id: evento.id,
-      data: {
-        status: "em_andamento",
-        dt_inicio: new Date().toISOString(),
-        id_motivo: Number(motivoId),
-        observacao_inicio: observacao || null,
-        id_usuario_inicio: profile.id,
-      },
-    });
+  const handleSubmit = (e: React.FormEvent) => {
   };
 
   return (

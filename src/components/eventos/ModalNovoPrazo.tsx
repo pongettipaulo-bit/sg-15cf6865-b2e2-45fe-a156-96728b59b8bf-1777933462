@@ -22,9 +22,13 @@ type Contato = {
   contato: string;
 };
 
-export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoProps) {
-  if (!evento) return null;
+type ModalNovoPrazoProps = {
+  evento: Evento | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
 
+export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoProps) {
   const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -34,8 +38,9 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
   const [contatoSelecionado, setContatoSelecionado] = useState<string>("");
 
   const { data: contatos } = useQuery({
-    queryKey: ["escalation-contatos", evento.id_tipo_evento],
+    queryKey: ["escalation-contatos", evento?.id_tipo_evento],
     queryFn: async () => {
+      if (!evento) return [];
       const { data, error } = await supabase
         .from("dim_escalation_list")
         .select("*")
@@ -45,11 +50,13 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
       if (error) throw error;
       return data as Contato[];
     },
-    enabled: open && !!evento.id_tipo_evento,
+    enabled: open && !!evento?.id_tipo_evento,
   });
 
   const definirNovoPrazo = useMutation({
     mutationFn: async () => {
+      if (!evento) return;
+      
       console.log("🚀 Iniciando mutação de novo prazo");
 
       const novoNivel = (evento.nivel_escalonamento ?? 0) + 1;
@@ -117,6 +124,8 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
       });
     },
   });
+
+  if (!evento) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
