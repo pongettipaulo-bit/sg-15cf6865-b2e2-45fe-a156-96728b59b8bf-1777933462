@@ -33,6 +33,8 @@ export function ModalAssumir({ evento, open, onOpenChange }: ModalAssumirProps) 
   const queryClient = useQueryClient();
   const [observacaoInicio, setObservacaoInicio] = useState("");
   const [descricaoProblema, setDescricaoProblema] = useState("");
+  const [motivoId, setMotivoId] = useState<string>("");
+  const [observacao, setObservacao] = useState("");
 
   const { data: operadores } = useQuery({
     queryKey: ["operadores-ativos"],
@@ -46,6 +48,22 @@ export function ModalAssumir({ evento, open, onOpenChange }: ModalAssumirProps) 
       return data;
     },
     enabled: open,
+  });
+
+  const { data: motivos, isLoading: loadingMotivos } = useQuery({
+    queryKey: ["motivos-assumir", evento?.id_tipo_evento],
+    queryFn: async () => {
+      if (!evento) return [];
+      const { data, error } = await supabase
+        .from("dim_motivo_evento")
+        .select("*")
+        .eq("id_tipo_evento", evento.id_tipo_evento)
+        .eq("ativo", true)
+        .order("nm_motivo");
+      if (error) throw error;
+      return data;
+    },
+    enabled: open && !!evento?.id_tipo_evento,
   });
 
   const assumirEvento = useMutation({
