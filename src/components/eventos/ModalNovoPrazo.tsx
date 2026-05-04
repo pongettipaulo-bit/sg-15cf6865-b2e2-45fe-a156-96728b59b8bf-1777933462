@@ -48,53 +48,49 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
     enabled: !!evento?.id_tipo_evento,
   });
 
-  const novoPrazoMutation = useMutation({
-    mutationFn: async () => {
-      if (!evento) return;
-
-      const prazoDate = new Date(novoPrazo);
-      const nivelEscalonamento = (evento.nivel_escalonamento || 0) + 1;
-
-      // Update fila_evento - set status to 'escalado' and update prazo
+  const definirNovoPrazo = useMutation({
+    mutationFn: async (data: { novoPrazo: string; justificativa: string; idContato: number }) => {
+      // Update fila_evento
       const { error: updateError } = await supabase
         .from("fila_evento")
         .update({
           status: "escalado",
-          dt_prazo: prazoDate.toISOString(),
-          nivel_escalonamento: nivelEscalonamento,
-          justificativa,
+          dt_prazo: data.novoPrazo,
+          nivel_escalonamento: (evento.nivel_escalonamento || 0) + 1,
         })
         .eq("id", evento.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("Erro ao atualizar evento:", updateError);
+        throw updateError;
+      }
 
       // Insert log_escalonamento
       const { error: logError } = await supabase
         .from("log_escalonamento")
         .insert({
           id_evento: evento.id,
-          id_contato: Number(idContato),
+          id_contato: data.idContato,
           dt_escalonamento: new Date().toISOString(),
-          dt_prazo: prazoDate.toISOString(),
-          nivel: nivelEscalonamento,
-          observacao: `Novo prazo definido: ${justificativa}`,
+          dt_prazo: data.novoPrazo,
+          nivel: (evento.nivel_escalonamento || 0) + 1,
+          observacao: data.justificativa,
         });
 
-      if (logError) throw logError;
+      if (logError) {
+        console.error("Erro ao inserir log de escalonamento:", logError);
+        throw logError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
       queryClient.invalidateQueries({ queryKey: ["eventos-encerrados-hoje"] });
       onOpenChange(false);
       toast({ title: "Novo prazo definido com sucesso" });
-      resetForm();
     },
     onError: (error) => {
-      console.error("Erro ao definir novo prazo:", error);
-      toast({ 
-        title: "Erro ao definir novo prazo", 
-        variant: "destructive" 
-      });
+      console.error("Erro completo:", error);
+      toast({ title: "Erro ao definir novo prazo", variant: "destructive" });
     },
   });
 
@@ -122,7 +118,7 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
       return;
     }
 
-    novoPrazoMutation.mutate();
+    definirNovoPrazo.mutate({ novoPrazo, justificativa, idContato: Number(idContato) });
   };
 
   const handleOpenChange = (isOpen: boolean) => {
@@ -191,9 +187,9 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
             </Button>
             <Button 
               type="submit" 
-              disabled={novoPrazoMutation.isPending}
+              disabled={definirNovoPrazo.isPending}
             >
-              {novoPrazoMutation.isPending ? "Salvando..." : "Confirmar"}
+              {definirNovoPrazo.isPending ? "Salvando..." : "Confirmar"}
             </Button>
           </DialogFooter>
         </form>

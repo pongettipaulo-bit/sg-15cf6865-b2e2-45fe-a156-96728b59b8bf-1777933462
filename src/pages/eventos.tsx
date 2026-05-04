@@ -91,22 +91,17 @@ export default function Eventos() {
     queryFn: async () => {
       const hoje = new Date().toISOString().split("T")[0];
       
+      // Simplified query - just get IDs and basic fields
       const { data: encerrados, error: errorEncerrados } = await supabase
         .from("fila_evento")
-        .select(`
-          *,
-          tipo_evento:dim_tipo_evento(nm_tipo_evento, criticidade),
-          equipamento:dim_equipamento(nm_equipamento),
-          categoria:dim_categoria_evento(nm_categoria),
-          subcategoria:dim_subcategoria_evento(nm_subcategoria),
-          operacao:dim_operacao(nm_operacao)
-        `)
+        .select("*")
         .eq("status", "encerrado")
         .gte("dt_fim", hoje)
         .order("dt_fim", { ascending: false });
 
       if (errorEncerrados) {
         console.error("Erro ao carregar encerrados:", errorEncerrados);
+        return { encerrados: 0, cancelados: 0, eventosEncerradosHoje: [] };
       }
 
       const { count: cancelados } = await supabase
@@ -115,36 +110,53 @@ export default function Eventos() {
         .eq("status", "cancelado")
         .gte("dt_fim", hoje);
 
-      const eventosEncerradosHoje = (encerrados || []).map((e: any) => ({
-        id: e.id,
-        id_tipo_evento: e.id_tipo_evento,
-        id_equipamento: e.id_equipamento,
-        id_operacao: e.id_operacao,
-        id_operador: e.id_operador,
-        id_unidade: e.id_unidade,
-        nm_tipo_evento: e.tipo_evento?.nm_tipo_evento || "",
-        nm_equipamento: e.equipamento?.nm_equipamento || "",
-        nm_operacao: e.operacao?.nm_operacao || "",
-        nm_operador: "",
-        nm_unidade: "",
-        criticidade: e.tipo_evento?.criticidade || "media",
-        status: "encerrado",
-        dt_prazo: null,
-        dt_fim: e.dt_fim,
-        prazo_vencido: false,
-        nm_categoria: e.categoria?.nm_categoria || "",
-        nm_subcategoria: e.subcategoria?.nm_subcategoria || "",
-        nivel_escalonamento: 0,
-        vl_tempo_duracao_max: 0,
-        criado_em: e.criado_em,
-        observacao_fim: e.observacao_fim,
-        tp_encerramento: e.tp_encerramento,
-      }));
+      // Get related data separately for each event
+      const eventosComDados = await Promise.all(
+        (encerrados || []).map(async (e: any) => {
+          const { data: tipoEvento } = await supabase
+            .from("dim_tipo_evento")
+            .select("nm_tipo_evento, criticidade")
+            .eq("id", e.id_tipo_evento)
+            .single();
+
+          const { data: equipamento } = await supabase
+            .from("dim_equipamento")
+            .select("nm_equipamento")
+            .eq("id", e.id_equipamento)
+            .single();
+
+          return {
+            id: e.id,
+            id_tipo_evento: e.id_tipo_evento,
+            id_equipamento: e.id_equipamento,
+            id_operacao: e.id_operacao,
+            id_operador: e.id_operador,
+            id_unidade: e.id_unidade,
+            nm_tipo_evento: tipoEvento?.nm_tipo_evento || "",
+            nm_equipamento: equipamento?.nm_equipamento || "",
+            nm_operacao: "",
+            nm_operador: "",
+            nm_unidade: "",
+            criticidade: tipoEvento?.criticidade || "media",
+            status: "encerrado",
+            dt_prazo: null,
+            dt_fim: e.dt_fim,
+            prazo_vencido: false,
+            nm_categoria: "",
+            nm_subcategoria: "",
+            nivel_escalonamento: 0,
+            vl_tempo_duracao_max: 0,
+            criado_em: e.criado_em,
+            observacao_fim: e.observacao_fim,
+            tp_encerramento: e.tp_encerramento,
+          };
+        })
+      );
 
       return {
         encerrados: encerrados?.length || 0,
         cancelados: cancelados || 0,
-        eventosEncerradosHoje,
+        eventosEncerradosHoje: eventosComDados,
       };
     },
     refetchInterval: 30000,
