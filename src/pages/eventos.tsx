@@ -73,9 +73,34 @@ export default function Eventos() {
       }
       
       console.log("Eventos carregados da view:", data?.length, "eventos");
-      console.log("Estrutura do primeiro evento:", data?.[0]);
       
       return data as Evento[];
+    },
+    refetchInterval: 30000,
+  });
+
+  // Separate query for closed/cancelled events count (not in view)
+  const { data: eventosEncerrados } = useQuery({
+    queryKey: ["eventos-encerrados-hoje"],
+    queryFn: async () => {
+      const hoje = new Date().toISOString().split("T")[0];
+      
+      const { count: encerrados } = await supabase
+        .from("fila_evento")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "encerrado")
+        .gte("dt_fim", hoje);
+
+      const { count: cancelados } = await supabase
+        .from("fila_evento")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "cancelado")
+        .gte("dt_fim", hoje);
+
+      return {
+        encerrados: encerrados || 0,
+        cancelados: cancelados || 0,
+      };
     },
     refetchInterval: 30000,
   });
@@ -97,6 +122,7 @@ export default function Eventos() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
+      queryClient.invalidateQueries({ queryKey: ["eventos-encerrados-hoje"] });
       toast({ title: "Evento encerrado sem tratativa" });
     },
     onError: () => {
@@ -121,6 +147,7 @@ export default function Eventos() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
+      queryClient.invalidateQueries({ queryKey: ["eventos-encerrados-hoje"] });
       toast({ title: "Evento cancelado" });
     },
     onError: () => {
@@ -134,14 +161,8 @@ export default function Eventos() {
     em_andamento: eventos?.filter((e) => e.status === "em_andamento").length || 0,
     escalado: eventos?.filter((e) => e.status === "escalado").length || 0,
     atrasado: eventos?.filter((e) => e.status === "atrasado").length || 0,
-    encerrado: eventos?.filter((e) => {
-      if (e.status !== "encerrado") return false;
-      if (!e.dt_fim) return false;
-      const hoje = new Date().toISOString().split("T")[0];
-      const dataFim = new Date(e.dt_fim).toISOString().split("T")[0];
-      return dataFim === hoje;
-    }).length || 0,
-    cancelado: eventos?.filter((e) => e.status === "cancelado").length || 0,
+    encerrado: eventosEncerrados?.encerrados || 0,
+    cancelado: eventosEncerrados?.cancelados || 0,
   };
 
   const filteredEventos = eventos?.filter((e) => {

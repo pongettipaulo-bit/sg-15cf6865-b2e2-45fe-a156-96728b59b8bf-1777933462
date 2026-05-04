@@ -96,9 +96,9 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
-      toast({ title: "Evento escalado com sucesso" });
-      resetForm();
+      queryClient.invalidateQueries({ queryKey: ["eventos-encerrados-hoje"] });
       onOpenChange(false);
+      toast({ title: "Evento escalado com sucesso" });
     },
     onError: (error) => {
       console.error("Erro ao escalar evento:", error);

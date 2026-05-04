@@ -40,9 +40,9 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
-      toast({ title: "Evento encerrado com sucesso" });
-      setObservacaoFim("");
+      queryClient.invalidateQueries({ queryKey: ["eventos-encerrados-hoje"] });
       onOpenChange(false);
+      toast({ title: "Evento encerrado com sucesso" });
     },
     onError: () => {
       toast({ title: "Erro ao encerrar evento", variant: "destructive" });

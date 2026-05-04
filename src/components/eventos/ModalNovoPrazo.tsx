@@ -40,7 +40,9 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: Props) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
-      toast({ title: "Prazo atualizado com sucesso" });
+      queryClient.invalidateQueries({ queryKey: ["eventos-encerrados-hoje"] });
+      onOpenChange(false);
+      toast({ title: "Novo prazo definido com sucesso" });
     },
     onError: () => toast({ title: "Erro ao atualizar prazo", variant: "destructive" }),
   });

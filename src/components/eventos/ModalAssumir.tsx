@@ -72,9 +72,9 @@ export function ModalAssumir({ evento, open, onOpenChange }: ModalAssumirProps) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
-      toast({ title: "Evento assumido com sucesso" });
-      resetForm();
+      queryClient.invalidateQueries({ queryKey: ["eventos-encerrados-hoje"] });
       onOpenChange(false);
+      toast({ title: "Evento assumido com sucesso" });
     },
     onError: (error) => {
       console.error("Erro ao assumir evento:", error);
