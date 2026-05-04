@@ -58,6 +58,12 @@ export default function Eventos() {
   const [modalEncerrar, setModalEncerrar] = useState(false);
   const [modalNovoPrazo, setModalNovoPrazo] = useState(false);
   const [eventoSelecionado, setEventoSelecionado] = useState<Evento | null>(null);
+  
+  // Filter states
+  const [filtroCriticidade, setFiltroCriticidade] = useState<string>("todas");
+  const [filtroStatus, setFiltroStatus] = useState<string>("todos");
+  const [filtroCategoria, setFiltroCategoria] = useState<string>("todas");
+  const [buscaTexto, setBuscaTexto] = useState("");
 
   const { data: eventos, isLoading } = useQuery({
     queryKey: ["eventos-abertos"],
