@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/contexts/AuthProvider";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -20,11 +19,10 @@ type Props = {
   onOpenChange: (open: boolean) => void;
 };
 
-export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
-  const { profile } = useAuth();
+export function ModalAguardar({ evento, open, onOpenChange }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [observacaoFim, setObservacaoFim] = useState("");
+  const [observacao, setObservacao] = useState("");
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -32,23 +30,19 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
       const { error } = await supabase
         .from("fila_evento")
         .update({
-          status: "encerrado",
-          tp_encerramento: "tratativa",
-          dt_fim: new Date().toISOString(),
-          observacao_fim: observacaoFim || null,
-          id_usuario_fim: profile?.id ?? null,
+          observacao_inicio: observacao || null,
+          atualizado_em: new Date().toISOString(),
         })
         .eq("id", evento.id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
-      queryClient.invalidateQueries({ queryKey: ["eventos-encerrados-hoje"] });
       onOpenChange(false);
-      setObservacaoFim("");
-      toast({ title: "Evento encerrado com sucesso" });
+      setObservacao("");
+      toast({ title: "Observação registrada" });
     },
-    onError: () => toast({ title: "Erro ao encerrar evento", variant: "destructive" }),
+    onError: () => toast({ title: "Erro ao registrar observação", variant: "destructive" }),
   });
 
   if (!evento) return null;
@@ -57,9 +51,9 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Encerrar Evento</DialogTitle>
+          <DialogTitle>Aguardar</DialogTitle>
           <DialogDescription>
-            {evento.nm_tipo_evento} — Descreva a resolução
+            {evento.nm_tipo_evento} — Registre uma observação opcional
           </DialogDescription>
         </DialogHeader>
         <form
@@ -67,23 +61,23 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
           className="space-y-4"
         >
           <div>
-            <Label htmlFor="observacao_fim">Observação Final</Label>
+            <Label htmlFor="observacao">Observação</Label>
             <Textarea
-              id="observacao_fim"
-              value={observacaoFim}
-              onChange={(e) => setObservacaoFim(e.target.value)}
-              placeholder="Descreva como o evento foi resolvido..."
+              id="observacao"
+              value={observacao}
+              onChange={(e) => setObservacao(e.target.value)}
+              placeholder="Observação adicional..."
               maxLength={280}
-              rows={4}
+              rows={3}
             />
-            <p className="text-xs text-muted-foreground mt-1">{observacaoFim.length}/280</p>
+            <p className="text-xs text-muted-foreground text-right mt-1">{observacao.length}/280</p>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? "Encerrando..." : "Encerrar"}
+              {mutation.isPending ? "Salvando..." : "Confirmar"}
             </Button>
           </DialogFooter>
         </form>

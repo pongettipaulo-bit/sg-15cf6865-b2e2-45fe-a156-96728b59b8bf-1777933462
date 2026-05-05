@@ -20,11 +20,11 @@ type Props = {
   onOpenChange: (open: boolean) => void;
 };
 
-export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
+export function ModalCancelar({ evento, open, onOpenChange }: Props) {
   const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [observacaoFim, setObservacaoFim] = useState("");
+  const [justificativa, setJustificativa] = useState("");
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -32,10 +32,10 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
       const { error } = await supabase
         .from("fila_evento")
         .update({
-          status: "encerrado",
-          tp_encerramento: "tratativa",
+          status: "cancelado",
+          tp_encerramento: "cancelado",
           dt_fim: new Date().toISOString(),
-          observacao_fim: observacaoFim || null,
+          observacao_fim: justificativa,
           id_usuario_fim: profile?.id ?? null,
         })
         .eq("id", evento.id);
@@ -45,45 +45,54 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
       queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
       queryClient.invalidateQueries({ queryKey: ["eventos-encerrados-hoje"] });
       onOpenChange(false);
-      setObservacaoFim("");
-      toast({ title: "Evento encerrado com sucesso" });
+      setJustificativa("");
+      toast({ title: "Evento cancelado" });
     },
-    onError: () => toast({ title: "Erro ao encerrar evento", variant: "destructive" }),
+    onError: () => toast({ title: "Erro ao cancelar evento", variant: "destructive" }),
   });
 
   if (!evento) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!justificativa.trim()) {
+      toast({ title: "Justificativa é obrigatória", variant: "destructive" });
+      return;
+    }
+    mutation.mutate();
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Encerrar Evento</DialogTitle>
-          <DialogDescription>
-            {evento.nm_tipo_evento} — Descreva a resolução
-          </DialogDescription>
+          <DialogTitle>Cancelar Evento</DialogTitle>
+          <DialogDescription>{evento.nm_tipo_evento}</DialogDescription>
         </DialogHeader>
-        <form
-          onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }}
-          className="space-y-4"
-        >
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="observacao_fim">Observação Final</Label>
+            <Label htmlFor="justificativa">Justificativa *</Label>
             <Textarea
-              id="observacao_fim"
-              value={observacaoFim}
-              onChange={(e) => setObservacaoFim(e.target.value)}
-              placeholder="Descreva como o evento foi resolvido..."
+              id="justificativa"
+              value={justificativa}
+              onChange={(e) => setJustificativa(e.target.value)}
+              placeholder="Por que este evento está sendo cancelado?"
               maxLength={280}
               rows={4}
+              required
             />
-            <p className="text-xs text-muted-foreground mt-1">{observacaoFim.length}/280</p>
+            <p className="text-xs text-muted-foreground text-right mt-1">{justificativa.length}/280</p>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
+              Voltar
             </Button>
-            <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? "Encerrando..." : "Encerrar"}
+            <Button
+              type="submit"
+              variant="destructive"
+              disabled={mutation.isPending || !justificativa.trim()}
+            >
+              {mutation.isPending ? "Cancelando..." : "Cancelar Evento"}
             </Button>
           </DialogFooter>
         </form>

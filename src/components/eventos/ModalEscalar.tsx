@@ -21,7 +21,6 @@ type Evento = {
 type Contato = {
   id: number;
   nm_pessoa: string;
-  contato: string;
   turno?: string;
   nivel_hierarquia: number;
 };
@@ -47,26 +46,29 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
       if (!evento) return [];
       const { data, error } = await supabase
         .from("dim_escalation_list")
-        .select("*")
+        .select("id, nm_pessoa, turno, nivel_hierarquia")
         .eq("id_tipo_evento", evento.id_tipo_evento)
         .eq("ativo", true)
         .order("ordem");
       if (error) throw error;
-      return data;
+      return data as Contato[];
     },
     enabled: open && !!evento?.id_tipo_evento,
   });
 
   const escalarEvento = useMutation({
-    mutationFn: async (data: { idContato: number; dtPrazo: string; observacao: string }) => {
+    mutationFn: async () => {
       if (!evento) return;
-      
+
+      const novoNivel = (evento.nivel_escalonamento || 0) + 1;
+      const contato = contatos?.find((c) => c.id === Number(idContato));
+
       const { error: updateError } = await supabase
         .from("fila_evento")
         .update({
           status: "escalado",
-          nivel_escalonamento: (evento.nivel_escalonamento || 0) + 1,
-          dt_prazo: data.dtPrazo,
+          nivel_escalonamento: novoNivel,
+          dt_prazo: dtPrazo,
         })
         .eq("id", evento.id);
 
@@ -76,11 +78,11 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
         .from("log_escalonamento")
         .insert({
           id_fila_evento: evento.id,
-          id_contato: data.idContato,
-          dt_escalonamento: new Date().toISOString(),
-          dt_prazo: data.dtPrazo,
-          nivel: (evento.nivel_escalonamento || 0) + 1,
-          observacao: data.observacao,
+          nivel: novoNivel,
+          dt_prazo: dtPrazo,
+          id_usuario: profile?.id ?? null,
+          nm_contato: contato?.nm_pessoa ?? null,
+          observacao: observacao || null,
         });
 
       if (logError) throw logError;
@@ -89,18 +91,23 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
       queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
       queryClient.invalidateQueries({ queryKey: ["eventos-encerrados-hoje"] });
       onOpenChange(false);
+      setIdContato("");
+      setDtPrazo("");
+      setObservacao("");
       toast({ title: "Evento escalado com sucesso" });
     },
-    onError: () => {
-      toast({ title: "Erro ao escalar evento", variant: "destructive" });
-    },
+    onError: () => toast({ title: "Erro ao escalar evento", variant: "destructive" }),
   });
 
   if (!evento) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    escalarEvento.mutate({ idContato: Number(idContato), dtPrazo, observacao });
+    if (!idContato || !dtPrazo) {
+      toast({ title: "Preencha contato e prazo", variant: "destructive" });
+      return;
+    }
+    escalarEvento.mutate();
   };
 
   return (
@@ -109,20 +116,20 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
         <DialogHeader>
           <DialogTitle>Escalar Evento</DialogTitle>
           <DialogDescription>
-            {evento?.nm_tipo_evento || "Evento"} — Nível {evento?.nivel_escalonamento || 0}
+            {evento.nm_tipo_evento} — Nível atual: {evento.nivel_escalonamento || 0}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="contato">Contato Acionado *</Label>
-            <Select value={idContato} onValueChange={setIdContato} required>
+            <Label>Contato Acionado *</Label>
+            <Select value={idContato} onValueChange={setIdContato}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o contato" />
               </SelectTrigger>
               <SelectContent>
                 {contatos?.map((contato) => (
                   <SelectItem key={contato.id} value={String(contato.id)}>
-                    {contato.nm_pessoa} {contato.turno ? `(${contato.turno})` : ""}
+                    {contato.nm_pessoa}{contato.turno ? ` (${contato.turno})` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -130,9 +137,8 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
           </div>
 
           <div>
-            <Label htmlFor="prazo">Prazo *</Label>
+            <Label>Prazo *</Label>
             <Input
-              id="prazo"
               type="datetime-local"
               value={dtPrazo}
               onChange={(e) => setDtPrazo(e.target.value)}
@@ -141,17 +147,15 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
           </div>
 
           <div>
-            <Label htmlFor="observacao">Observação</Label>
+            <Label>Observação</Label>
             <Textarea
-              id="observacao"
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
               placeholder="Contexto adicional..."
               maxLength={280}
+              rows={3}
             />
-            <p className="text-xs text-muted-foreground text-right mt-1">
-              {observacao.length}/280
-            </p>
+            <p className="text-xs text-muted-foreground text-right mt-1">{observacao.length}/280</p>
           </div>
 
           <DialogFooter>

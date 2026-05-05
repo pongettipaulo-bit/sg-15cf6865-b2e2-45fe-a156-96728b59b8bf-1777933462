@@ -20,11 +20,11 @@ type Props = {
   onOpenChange: (open: boolean) => void;
 };
 
-export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
+export function ModalSemTratativa({ evento, open, onOpenChange }: Props) {
   const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [observacaoFim, setObservacaoFim] = useState("");
+  const [observacao, setObservacao] = useState("");
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -33,9 +33,9 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
         .from("fila_evento")
         .update({
           status: "encerrado",
-          tp_encerramento: "tratativa",
+          tp_encerramento: "sem_tratativa",
           dt_fim: new Date().toISOString(),
-          observacao_fim: observacaoFim || null,
+          observacao_fim: observacao ? `Sem tratativa. ${observacao}` : "Sem tratativa.",
           id_usuario_fim: profile?.id ?? null,
         })
         .eq("id", evento.id);
@@ -45,8 +45,8 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
       queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
       queryClient.invalidateQueries({ queryKey: ["eventos-encerrados-hoje"] });
       onOpenChange(false);
-      setObservacaoFim("");
-      toast({ title: "Evento encerrado com sucesso" });
+      setObservacao("");
+      toast({ title: "Evento encerrado sem tratativa" });
     },
     onError: () => toast({ title: "Erro ao encerrar evento", variant: "destructive" }),
   });
@@ -57,9 +57,9 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Encerrar Evento</DialogTitle>
+          <DialogTitle>Sem Tratativa</DialogTitle>
           <DialogDescription>
-            {evento.nm_tipo_evento} — Descreva a resolução
+            {evento.nm_tipo_evento} — A máquina já voltou a operar normalmente?
           </DialogDescription>
         </DialogHeader>
         <form
@@ -67,23 +67,23 @@ export function ModalEncerrar({ evento, open, onOpenChange }: Props) {
           className="space-y-4"
         >
           <div>
-            <Label htmlFor="observacao_fim">Observação Final</Label>
+            <Label htmlFor="observacao">Observação</Label>
             <Textarea
-              id="observacao_fim"
-              value={observacaoFim}
-              onChange={(e) => setObservacaoFim(e.target.value)}
-              placeholder="Descreva como o evento foi resolvido..."
+              id="observacao"
+              value={observacao}
+              onChange={(e) => setObservacao(e.target.value)}
+              placeholder="Observação adicional..."
               maxLength={280}
-              rows={4}
+              rows={3}
             />
-            <p className="text-xs text-muted-foreground mt-1">{observacaoFim.length}/280</p>
+            <p className="text-xs text-muted-foreground text-right mt-1">{observacao.length}/280</p>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? "Encerrando..." : "Encerrar"}
+              {mutation.isPending ? "Confirmando..." : "Confirmar"}
             </Button>
           </DialogFooter>
         </form>

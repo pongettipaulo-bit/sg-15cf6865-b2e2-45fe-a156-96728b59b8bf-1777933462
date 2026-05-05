@@ -13,13 +13,14 @@ import { useToast } from "@/hooks/use-toast";
 type Evento = {
   id: string;
   id_tipo_evento: number;
+  nm_tipo_evento?: string;
   nivel_escalonamento: number;
 };
 
 type Contato = {
   id: number;
   nm_pessoa: string;
-  contato: string;
+  turno?: string;
 };
 
 type ModalNovoPrazoProps = {
@@ -43,7 +44,7 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
       if (!evento) return [];
       const { data, error } = await supabase
         .from("dim_escalation_list")
-        .select("*")
+        .select("id, nm_pessoa, turno")
         .eq("id_tipo_evento", evento.id_tipo_evento)
         .eq("ativo", true)
         .order("ordem");
@@ -56,12 +57,11 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
   const definirNovoPrazo = useMutation({
     mutationFn: async () => {
       if (!evento) return;
-      
-      console.log("🚀 Iniciando mutação de novo prazo");
 
       const novoNivel = (evento.nivel_escalonamento ?? 0) + 1;
+      const contatoId = contatoSelecionado ? Number(contatoSelecionado) : null;
+      const contato = contatos?.find((c) => c.id === contatoId);
 
-      // Update fila_evento
       const { error: updateError } = await supabase
         .from("fila_evento")
         .update({
@@ -72,41 +72,22 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
         })
         .eq("id", evento.id);
 
-      if (updateError) {
-        console.error("❌ Erro ao atualizar fila_evento:", updateError);
-        throw new Error(`Erro ao atualizar evento: ${updateError.message}`);
-      }
-
-      console.log("✅ Evento atualizado com sucesso");
-
-      // Insert log_escalonamento
-      const contatoId = contatoSelecionado ? Number(contatoSelecionado) : null;
-      const contato = contatos?.find(c => c.id === contatoId);
-
-      const logData = {
-        id_fila_evento: evento.id,
-        nivel: novoNivel,
-        dt_prazo: novoPrazo,
-        id_usuario: profile?.id ?? null,
-        nm_contato: contato?.nm_pessoa ?? null,
-        observacao: justificativa || null,
-      };
-
-      console.log("📝 Inserindo log_escalonamento:", logData);
+      if (updateError) throw updateError;
 
       const { error: logError } = await supabase
         .from("log_escalonamento")
-        .insert(logData);
+        .insert({
+          id_fila_evento: evento.id,
+          nivel: novoNivel,
+          dt_prazo: novoPrazo,
+          id_usuario: profile?.id ?? null,
+          nm_contato: contato?.nm_pessoa ?? null,
+          observacao: justificativa || null,
+        });
 
-      if (logError) {
-        console.error("❌ Erro ao inserir log:", logError);
-        throw new Error(`Erro ao registrar log: ${logError.message}`);
-      }
-
-      console.log("✅ Log de escalonamento inserido");
+      if (logError) throw logError;
     },
     onSuccess: () => {
-      console.log("✅ Mutação concluída com sucesso");
       queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
       queryClient.invalidateQueries({ queryKey: ["eventos-encerrados-hoje"] });
       onOpenChange(false);
@@ -116,7 +97,6 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
       toast({ title: "Novo prazo definido com sucesso" });
     },
     onError: (error: any) => {
-      console.error("❌ Erro completo na mutação:", error);
       toast({
         title: "Erro ao definir novo prazo",
         description: error?.message || "Erro desconhecido",
@@ -130,10 +110,7 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!novoPrazo || !justificativa || !contatoSelecionado) {
-      toast({
-        title: "Preencha todos os campos obrigatórios",
-        variant: "destructive",
-      });
+      toast({ title: "Preencha todos os campos obrigatórios", variant: "destructive" });
       return;
     }
     definirNovoPrazo.mutate();
@@ -148,7 +125,7 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="contato">Contato Acionado*</Label>
+            <Label>Contato Acionado *</Label>
             <Select value={contatoSelecionado} onValueChange={setContatoSelecionado}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o contato" />
@@ -156,7 +133,7 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
               <SelectContent>
                 {contatos?.map((contato) => (
                   <SelectItem key={contato.id} value={String(contato.id)}>
-                    {contato.nm_pessoa} — {contato.contato}
+                    {contato.nm_pessoa}{contato.turno ? ` (${contato.turno})` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -164,9 +141,8 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
           </div>
 
           <div>
-            <Label htmlFor="novoPrazo">Novo Prazo*</Label>
+            <Label>Novo Prazo *</Label>
             <Input
-              id="novoPrazo"
               type="datetime-local"
               value={novoPrazo}
               onChange={(e) => setNovoPrazo(e.target.value)}
@@ -175,18 +151,15 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
           </div>
 
           <div>
-            <Label htmlFor="justificativa">Justificativa* (máx 280 caracteres)</Label>
+            <Label>Justificativa * (máx 280 caracteres)</Label>
             <Textarea
-              id="justificativa"
               value={justificativa}
               onChange={(e) => setJustificativa(e.target.value.slice(0, 280))}
               rows={3}
               required
               minLength={10}
             />
-            <p className="text-xs text-muted-foreground text-right mt-1">
-              {justificativa.length}/280
-            </p>
+            <p className="text-xs text-muted-foreground text-right mt-1">{justificativa.length}/280</p>
           </div>
 
           <DialogFooter>
