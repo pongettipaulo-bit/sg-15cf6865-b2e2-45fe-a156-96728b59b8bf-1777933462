@@ -10,9 +10,6 @@ import { Search } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ModalAssumir } from "@/components/eventos/ModalAssumir";
-import { ModalSemTratativa } from "@/components/eventos/ModalSemTratativa";
-import { ModalCancelar } from "@/components/eventos/ModalCancelar";
-import { ModalAguardar } from "@/components/eventos/ModalAguardar";
 import { ModalEscalar } from "@/components/eventos/ModalEscalar";
 import { ModalEncerrar } from "@/components/eventos/ModalEncerrar";
 import { ModalNovoPrazo } from "@/components/eventos/ModalNovoPrazo";
@@ -66,9 +63,7 @@ const getCriticalityStyle = (criticidade: string): React.CSSProperties => {
   }
 };
 
-type ModalKey =
-  | "assumir" | "semTratativa" | "cancelar" | "aguardar"
-  | "escalar" | "encerrar" | "novoPrazo" | "detalhes";
+type ModalKey = "assumir" | "escalar" | "encerrar" | "novoPrazo" | "detalhes";
 
 export default function Eventos() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -276,29 +271,13 @@ export default function Eventos() {
           onClick={(e) => e.stopPropagation()}
         >
           {evento.status === "pendente" && (
-            <>
-              <Button size="sm" onClick={() => abrir("assumir", evento)}>
-                Assumir
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => abrir("semTratativa", evento)}>
-                Sem tratativa
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-destructive border-destructive hover:bg-destructive/10 text-xs px-2"
-                onClick={() => abrir("cancelar", evento)}
-              >
-                Cancelar
-              </Button>
-            </>
+            <Button size="sm" onClick={() => abrir("assumir", evento)}>
+              Assumir
+            </Button>
           )}
 
           {evento.status === "em_andamento" && (
             <>
-              <Button size="sm" variant="outline" onClick={() => abrir("aguardar", evento)}>
-                Aguardar
-              </Button>
               <Button
                 size="sm"
                 className="bg-purple-600 hover:bg-purple-700 text-white"
@@ -470,21 +449,6 @@ export default function Eventos() {
         evento={eventoSelecionado}
         open={modalAberto === "assumir"}
         onOpenChange={fechar("assumir")}
-      />
-      <ModalSemTratativa
-        evento={eventoSelecionado}
-        open={modalAberto === "semTratativa"}
-        onOpenChange={fechar("semTratativa")}
-      />
-      <ModalCancelar
-        evento={eventoSelecionado}
-        open={modalAberto === "cancelar"}
-        onOpenChange={fechar("cancelar")}
-      />
-      <ModalAguardar
-        evento={eventoSelecionado}
-        open={modalAberto === "aguardar"}
-        onOpenChange={fechar("aguardar")}
       />
       <ModalEscalar
         evento={eventoSelecionado}

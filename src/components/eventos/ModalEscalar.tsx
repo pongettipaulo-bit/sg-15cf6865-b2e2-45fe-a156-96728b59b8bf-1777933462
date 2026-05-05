@@ -22,7 +22,11 @@ type Contato = {
   id: number;
   nm_pessoa: string;
   turno?: string;
-  nivel_hierarquia: number;
+};
+
+type Motivo = {
+  id: number;
+  nm_motivo: string;
 };
 
 type ModalEscalarProps = {
@@ -36,9 +40,26 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const [motivoId, setMotivoId] = useState<string>("");
   const [idContato, setIdContato] = useState<string>("");
   const [dtPrazo, setDtPrazo] = useState("");
   const [observacao, setObservacao] = useState("");
+
+  const { data: motivos } = useQuery({
+    queryKey: ["motivos-escalar", evento?.id_tipo_evento],
+    queryFn: async () => {
+      if (!evento) return [];
+      const { data, error } = await supabase
+        .from("dim_motivo_evento")
+        .select("id, nm_motivo")
+        .eq("id_tipo_evento", evento.id_tipo_evento)
+        .eq("ativo", true)
+        .order("nm_motivo");
+      if (error) throw error;
+      return data as Motivo[];
+    },
+    enabled: open && !!evento?.id_tipo_evento,
+  });
 
   const { data: contatos } = useQuery({
     queryKey: ["escalation-contatos", evento?.id_tipo_evento],
@@ -46,7 +67,7 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
       if (!evento) return [];
       const { data, error } = await supabase
         .from("dim_escalation_list")
-        .select("id, nm_pessoa, turno, nivel_hierarquia")
+        .select("id, nm_pessoa, turno")
         .eq("id_tipo_evento", evento.id_tipo_evento)
         .eq("ativo", true)
         .order("ordem");
@@ -91,6 +112,7 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
       queryClient.invalidateQueries({ queryKey: ["eventos-abertos"] });
       queryClient.invalidateQueries({ queryKey: ["eventos-encerrados-hoje"] });
       onOpenChange(false);
+      setMotivoId("");
       setIdContato("");
       setDtPrazo("");
       setObservacao("");
@@ -121,15 +143,31 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
+            <Label>Motivo</Label>
+            <Select value={motivoId} onValueChange={setMotivoId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o motivo" />
+              </SelectTrigger>
+              <SelectContent>
+                {motivos?.map((m) => (
+                  <SelectItem key={m.id} value={String(m.id)}>
+                    {m.nm_motivo}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
             <Label>Contato Acionado *</Label>
             <Select value={idContato} onValueChange={setIdContato}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o contato" />
               </SelectTrigger>
               <SelectContent>
-                {contatos?.map((contato) => (
-                  <SelectItem key={contato.id} value={String(contato.id)}>
-                    {contato.nm_pessoa}{contato.turno ? ` (${contato.turno})` : ""}
+                {contatos?.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.nm_pessoa}{c.turno ? ` (${c.turno})` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>

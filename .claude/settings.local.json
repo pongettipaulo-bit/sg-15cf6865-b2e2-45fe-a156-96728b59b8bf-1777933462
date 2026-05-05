@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc *)",
-      "Bash(npx grep *)"
+      "Bash(npx grep *)",
+      "PowerShell(npx tsc --noEmit --skipLibCheck 2>&1)"
     ]
   }
 }
