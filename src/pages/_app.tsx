@@ -1,5 +1,6 @@
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
+import { useState } from "react";
 import { QueryProvider } from "@/contexts/QueryProvider";
 import { ThemeProvider } from "@/contexts/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthProvider";
@@ -9,6 +10,7 @@ import { useRouter } from "next/router";
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const isLoginPage = router.pathname === "/login";
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
     <ThemeProvider>
@@ -18,8 +20,15 @@ export default function App({ Component, pageProps }: AppProps) {
             <Component {...pageProps} />
           ) : (
             <div className="flex min-h-screen bg-background">
-              <AppSidebar />
-              <main className="flex-1 ml-64 p-8">
+              <AppSidebar
+                collapsed={sidebarCollapsed}
+                onToggle={() => setSidebarCollapsed((c) => !c)}
+              />
+              <main
+                className={`flex-1 p-6 transition-all duration-300 ${
+                  sidebarCollapsed ? "ml-12" : "ml-[220px]"
+                }`}
+              >
                 <Component {...pageProps} />
               </main>
             </div>
