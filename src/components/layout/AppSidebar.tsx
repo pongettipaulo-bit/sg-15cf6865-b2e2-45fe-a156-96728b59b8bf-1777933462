@@ -39,7 +39,10 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       )}
     >
       {/* Header */}
-      <div className="p-4 border-b border-sidebar/20 flex items-center justify-between">
+      <div className={cn(
+        "border-b border-sidebar/20 flex items-center",
+        collapsed ? "p-0 justify-center h-12" : "p-4 justify-between"
+      )}>
         {!collapsed && (
           <div>
             <h1 className="text-xl font-semibold text-primary-light">FieldOS</h1>
@@ -50,7 +53,10 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           variant="ghost"
           size="sm"
           onClick={onToggle}
-          className="text-white hover:bg-sidebar/20 ml-auto"
+          className={cn(
+            "text-white bg-transparent hover:!bg-white/10 border-0 shadow-none",
+            collapsed ? "w-full flex justify-center items-center" : "ml-auto"
+          )}
         >
           <Menu className="w-4 h-4" />
         </Button>

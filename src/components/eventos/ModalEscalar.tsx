@@ -89,7 +89,7 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
         .update({
           status: "escalado",
           nivel_escalonamento: novoNivel,
-          dt_prazo: dtPrazo,
+          dt_prazo: new Date(dtPrazo).toISOString(),
         })
         .eq("id", evento.id);
 
@@ -100,7 +100,7 @@ export function ModalEscalar({ evento, open, onOpenChange }: ModalEscalarProps) 
         .insert({
           id_fila_evento: evento.id,
           nivel: novoNivel,
-          dt_prazo: dtPrazo,
+          dt_prazo: new Date(dtPrazo).toISOString(),
           id_usuario: profile?.id ?? null,
           nm_contato: contato?.nm_pessoa ?? null,
           observacao: observacao || null,

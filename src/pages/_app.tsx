@@ -19,13 +19,13 @@ export default function App({ Component, pageProps }: AppProps) {
           {isLoginPage ? (
             <Component {...pageProps} />
           ) : (
-            <div className="flex min-h-screen bg-background">
+            <div className="flex h-screen overflow-hidden bg-background">
               <AppSidebar
                 collapsed={sidebarCollapsed}
                 onToggle={() => setSidebarCollapsed((c) => !c)}
               />
               <main
-                className={`flex-1 p-6 transition-all duration-300 ${
+                className={`flex-1 overflow-auto p-6 transition-all duration-300 ${
                   sidebarCollapsed ? "ml-12" : "ml-[220px]"
                 }`}
               >

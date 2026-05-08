@@ -1,378 +1,323 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/router";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/contexts/AuthProvider";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Search, Wrench } from "lucide-react";
+import { Search, AlertTriangle, Tractor } from "lucide-react";
 
-type Equipamento = {
-  id: string;
-  cd_equipamento: string;
-  nm_equipamento: string;
-  ativo: boolean;
-  nm_grupo: string;
-  nm_tipo: string;
-  nm_unidade: string;
-  total_eventos_abertos: number;
+const STATUS_PRIORITY: Record<string, number> = {
+  atrasado: 4,
+  escalado: 3,
+  em_andamento: 2,
+  pendente: 1,
 };
 
-type HistoricoEvento = {
+const STATUS_COLOR: Record<string, string> = {
+  atrasado: "#E24B4A",
+  escalado: "#534AB7",
+  em_andamento: "#185FA5",
+  pendente: "#94a3b8",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  atrasado: "Atrasado",
+  escalado: "Escalado",
+  em_andamento: "Em andamento",
+  pendente: "Pendente",
+};
+
+const FILTRO_LABELS: Record<string, string> = {
+  todos: "Todos",
+  pendente: "Pendente",
+  em_andamento: "Em andamento",
+  escalado: "Escalado",
+  atrasado: "Atrasado",
+};
+
+type EventoAberto = {
   id: string;
+  status: string;
   nm_tipo_evento: string;
-  criticidade: string;
+  id_equipamento: string;
+  nm_equipamento: string;
   criado_em: string;
-  dt_fim: string;
-  observacao_fim: string;
-  tp_encerramento?: string;
-  duracao_minutos: number;
+};
+
+type EquipRow = {
+  id_equipamento: string;
+  nm_equipamento: string;
+  cd_equipamento: string;
+  nm_grupo: string;
+  total_eventos: number;
+  status_critico: string;
+  ultimo_evento: string;
 };
 
 export default function Equipamentos() {
-  const { profile } = useAuth();
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
-  const [historicoOpen, setHistoricoOpen] = useState(false);
-  const [equipamentoSelecionado, setEquipamentoSelecionado] = useState<Equipamento | null>(null);
+  const [filtroStatus, setFiltroStatus] = useState("todos");
 
-  // Total de equipamentos ativos
-  const { data: totalEquipamentos } = useQuery({
-    queryKey: ["total-equipamentos"],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from("dim_equipamento")
-        .select("*", { count: "exact", head: true })
-        .eq("ativo", true);
-
-      if (error) throw error;
-      return count || 0;
-    },
-  });
-
-  // Equipamentos com eventos abertos (count de vw_fila_evento_aberta agrupado)
-  const { data: equipamentosComEventos } = useQuery({
-    queryKey: ["equipamentos-com-eventos"],
+  const { data: eventos } = useQuery({
+    queryKey: ["equip-eventos-ativos"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vw_fila_evento_aberta")
-        .select("id_equipamento");
-
+        .select("id, status, nm_tipo_evento, id_equipamento, nm_equipamento, criado_em")
+        .order("criado_em", { ascending: false });
       if (error) throw error;
-
-      // Count unique equipment IDs
-      const uniqueIds = new Set(data?.map((e) => e.id_equipamento) || []);
-      return uniqueIds.size;
+      return (data ?? []) as EventoAberto[];
     },
+    refetchInterval: 60000,
   });
 
-  // Lista de equipamentos
-  const { data: equipamentos, isLoading } = useQuery({
-    queryKey: ["equipamentos"],
+  const { data: equipMeta } = useQuery({
+    queryKey: ["equip-meta-full"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("dim_equipamento")
-        .select(`
-          id,
-          cd_equipamento,
-          nm_equipamento,
-          ativo,
-          id_grupo_equipamento,
-          id_tipo_equipamento,
-          id_unidade,
-          dim_grupo_equipamento(nm_grupo_equipamento),
-          dim_tipo_equipamento(nm_tipo_equipamento),
-          dim_unidade(nm_unidade)
-        `)
-        .eq("ativo", true)
-        .order("cd_equipamento", { ascending: true });
-
-      if (error) {
-        console.error("Erro ao carregar equipamentos:", error);
-        throw error;
-      }
-
-      console.log("Equipamentos carregados:", data?.length);
-
-      // Get event counts for each equipment from vw_fila_evento_aberta
-      const { data: eventosAbertos } = await supabase
-        .from("vw_fila_evento_aberta")
-        .select("id_equipamento");
-
-      const eventosPorEquipamento = eventosAbertos?.reduce((acc, evento) => {
-        acc[evento.id_equipamento] = (acc[evento.id_equipamento] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>) || {};
-
-      return data.map((e: any) => ({
-        id: e.id,
-        cd_equipamento: e.cd_equipamento,
-        nm_equipamento: e.nm_equipamento,
-        ativo: e.ativo,
-        nm_grupo: e.dim_grupo_equipamento?.nm_grupo_equipamento || "—",
-        nm_tipo: e.dim_tipo_equipamento?.nm_tipo_equipamento || "—",
-        nm_unidade: e.dim_unidade?.nm_unidade || "—",
-        total_eventos_abertos: eventosPorEquipamento[e.id] || 0,
-      }));
-    },
-  });
-
-  // Histórico de eventos do equipamento selecionado
-  const { data: historico, isLoading: loadingHistorico } = useQuery({
-    queryKey: ["historico", equipamentoSelecionado?.id],
-    queryFn: async () => {
-      if (!equipamentoSelecionado) return [];
-
-      const { data, error } = await supabase
-        .from("fila_evento")
-        .select(`
-          id,
-          criado_em,
-          dt_fim,
-          observacao_fim,
-          tp_encerramento,
-          tipo_evento:dim_tipo_evento(nm_tipo_evento, criticidade)
-        `)
-        .eq("id_equipamento", equipamentoSelecionado.id)
-        .eq("status", "encerrado")
-        .order("dt_fim", { ascending: false })
-        .limit(30);
-
-      if (error) {
-        console.error("Erro ao carregar histórico:", error);
-        throw error;
-      }
-
-      return data.map((e: any) => {
-        const inicio = new Date(e.criado_em);
-        const fim = new Date(e.dt_fim);
-        const duracaoMs = fim.getTime() - inicio.getTime();
-        const duracaoMinutos = Math.floor(duracaoMs / 1000 / 60);
-
-        return {
-          id: e.id,
-          nm_tipo_evento: e.tipo_evento?.nm_tipo_evento || "",
-          criticidade: e.tipo_evento?.criticidade || "media",
-          criado_em: e.criado_em,
-          dt_fim: e.dt_fim,
-          observacao_fim: e.observacao_fim,
-          tp_encerramento: e.tp_encerramento,
-          duracao_minutos: duracaoMinutos,
-        };
+        .select("id, cd_equipamento, dim_grupo_equipamento(nm_grupo_equipamento)");
+      const map = new Map<string, { cd: string; grupo: string }>();
+      (data ?? []).forEach((e: any) => {
+        map.set(e.id, {
+          cd: e.cd_equipamento ?? "",
+          grupo: e.dim_grupo_equipamento?.nm_grupo_equipamento ?? "—",
+        });
       });
+      return map;
     },
-    enabled: !!equipamentoSelecionado,
+    staleTime: 300_000,
   });
 
-  const filteredEquipamentos = equipamentos?.filter((e) => {
-    if (!searchTerm) return true;
-    const search = searchTerm.toLowerCase();
-    return (
-      e.cd_equipamento.toLowerCase().includes(search) ||
-      e.nm_equipamento.toLowerCase().includes(search) ||
-      e.nm_grupo.toLowerCase().includes(search) ||
-      e.nm_tipo.toLowerCase().includes(search)
-    );
-  });
+  const equipamentos = useMemo((): EquipRow[] => {
+    if (!eventos) return [];
 
-  const abrirHistorico = (equipamento: Equipamento) => {
-    setEquipamentoSelecionado(equipamento);
-    setHistoricoOpen(true);
+    const map: Record<string, { id_equipamento: string; nm_equipamento: string; eventos: EventoAberto[] }> = {};
+
+    eventos.forEach(e => {
+      if (!map[e.id_equipamento]) {
+        map[e.id_equipamento] = { id_equipamento: e.id_equipamento, nm_equipamento: e.nm_equipamento, eventos: [] };
+      }
+      map[e.id_equipamento].eventos.push(e);
+    });
+
+    return Object.values(map).map(g => {
+      const meta = equipMeta?.get(g.id_equipamento);
+
+      let worstPriority = 0;
+      let worstStatus = "pendente";
+      g.eventos.forEach(e => {
+        const p = STATUS_PRIORITY[e.status] ?? 0;
+        if (p > worstPriority) { worstPriority = p; worstStatus = e.status; }
+      });
+
+      return {
+        id_equipamento: g.id_equipamento,
+        nm_equipamento: g.nm_equipamento,
+        cd_equipamento: meta?.cd ?? "",
+        nm_grupo: meta?.grupo ?? "—",
+        total_eventos: g.eventos.length,
+        status_critico: worstStatus,
+        ultimo_evento: g.eventos[0]?.nm_tipo_evento ?? "—",
+      };
+    }).sort((a, b) => {
+      const diff = (STATUS_PRIORITY[b.status_critico] ?? 0) - (STATUS_PRIORITY[a.status_critico] ?? 0);
+      return diff !== 0 ? diff : b.total_eventos - a.total_eventos;
+    });
+  }, [eventos, equipMeta]);
+
+  const totalComAtivos = equipamentos.length;
+  const totalAtrasados = equipamentos.filter(e => e.status_critico === "atrasado").length;
+
+  const filtrados = useMemo(() =>
+    equipamentos.filter(e => {
+      if (filtroStatus !== "todos" && e.status_critico !== filtroStatus) return false;
+      if (searchTerm) {
+        const s = searchTerm.toLowerCase();
+        return (
+          e.cd_equipamento.toLowerCase().includes(s) ||
+          e.nm_equipamento.toLowerCase().includes(s)
+        );
+      }
+      return true;
+    }),
+    [equipamentos, filtroStatus, searchTerm]
+  );
+
+  const cardStyle: React.CSSProperties = {
+    background: "hsl(var(--card))",
+    border: "0.5px solid hsl(var(--border))",
+    borderRadius: "var(--radius)",
+    padding: "8px 12px",
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    height: 56,
+    flexShrink: 0,
   };
 
-  const getCriticalityColor = (criticidade: string) => {
-    switch (criticidade.toLowerCase()) {
-      case "critica":
-        return "bg-red-100 text-red-800";
-      case "alta":
-        return "bg-orange-100 text-orange-800";
-      case "media":
-        return "bg-blue-100 text-blue-800";
-      case "baixa":
-        return "bg-green-100 text-green-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  if (!profile) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-muted-foreground">Carregando...</p>
-      </div>
-    );
-  }
+  const colGrid = "2fr 1.5fr 80px 130px 2fr 110px";
 
   return (
-    <div className="p-8 space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* Header */}
       <div>
-        <h1 className="text-3xl font-semibold mb-2">Equipamentos</h1>
-        <p className="text-muted-foreground">Monitoramento de equipamentos e histórico de eventos</p>
+        <h1 style={{ fontSize: 18, fontWeight: 600, margin: 0 }}>Equipamentos</h1>
+        <p style={{ fontSize: 12, color: "hsl(var(--muted-foreground))", margin: 0 }}>
+          Equipamentos com eventos ativos agora
+        </p>
       </div>
 
-      {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <Wrench className="w-8 h-8 text-primary" />
-              <div>
-                <p className="text-sm text-muted-foreground">Total de Equipamentos</p>
-                <p className="text-3xl font-bold">{totalEquipamentos || 0}</p>
-              </div>
+      {/* Metric cards + busca + filtro */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={cardStyle}>
+          <Tractor size={18} />
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 500, lineHeight: 1 }}>{totalComAtivos}</div>
+            <div style={{ fontSize: 11, color: "hsl(var(--muted-foreground))" }}>Com eventos ativos</div>
+          </div>
+        </div>
+
+        <div style={cardStyle}>
+          <AlertTriangle size={18} color={totalAtrasados > 0 ? "#E24B4A" : "hsl(var(--muted-foreground))"} />
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 500, lineHeight: 1, color: totalAtrasados > 0 ? "#E24B4A" : undefined }}>
+              {totalAtrasados}
             </div>
-          </CardContent>
-        </Card>
+            <div style={{ fontSize: 11, color: "hsl(var(--muted-foreground))" }}>Com eventos atrasados</div>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
-                <span className="text-red-600 font-bold text-lg">!</span>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Com Eventos Abertos</p>
-                <p className="text-3xl font-bold">{equipamentosComEventos || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        <div style={{ flex: 1, position: "relative", minWidth: 200 }}>
+          <Search style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: "hsl(var(--muted-foreground))" }} />
+          <Input
+            placeholder="Buscar por nome ou código..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            style={{ paddingLeft: 32, fontSize: 13 }}
+          />
+        </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar equipamento..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      {/* Equipment Grid */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-40" />
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          {["todos", "pendente", "em_andamento", "escalado", "atrasado"].map(s => (
+            <button
+              key={s}
+              onClick={() => setFiltroStatus(s)}
+              style={{
+                fontSize: 12,
+                padding: "4px 10px",
+                borderRadius: 6,
+                border: "0.5px solid hsl(var(--border))",
+                background: filtroStatus === s
+                  ? s === "todos" ? "hsl(var(--foreground))" : STATUS_COLOR[s]
+                  : "hsl(var(--card))",
+                color: filtroStatus === s ? "#fff" : "hsl(var(--foreground))",
+                cursor: "pointer",
+                fontWeight: filtroStatus === s ? 600 : 400,
+              }}
+            >
+              {FILTRO_LABELS[s]}
+            </button>
           ))}
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredEquipamentos && filteredEquipamentos.length > 0 ? (
-            filteredEquipamentos.map((equipamento) => (
-              <Card key={equipamento.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg mb-1">{equipamento.nm_equipamento}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {equipamento.cd_equipamento}
-                        </p>
-                      </div>
-                      {equipamento.total_eventos_abertos > 0 && (
-                        <Badge variant="destructive" className="ml-2">
-                          {equipamento.total_eventos_abertos}
-                        </Badge>
-                      )}
-                    </div>
+      </div>
 
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Grupo:</span>
-                        <span className="font-medium">{equipamento.nm_grupo}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Tipo:</span>
-                        <span className="font-medium">{equipamento.nm_tipo}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Unidade:</span>
-                        <span className="font-medium">{equipamento.nm_unidade}</span>
-                      </div>
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => abrirHistorico(equipamento)}
-                    >
-                      Ver Histórico
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <div className="col-span-full text-center py-12 text-muted-foreground">
-              Nenhum equipamento encontrado
-            </div>
-          )}
+      {/* Tabela */}
+      <div style={{
+        background: "hsl(var(--card))",
+        border: "0.5px solid hsl(var(--border))",
+        borderRadius: "var(--radius)",
+        overflow: "hidden",
+      }}>
+        {/* Cabeçalho */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: colGrid,
+          padding: "8px 12px 8px 15px",
+          borderBottom: "1px solid hsl(var(--border))",
+          background: "hsl(var(--muted) / 0.4)",
+        }}>
+          {["Equipamento", "Grupo", "Eventos", "Status", "Último evento", ""].map(h => (
+            <span key={h} style={{
+              fontSize: 11,
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              color: "hsl(var(--muted-foreground))",
+            }}>
+              {h}
+            </span>
+          ))}
         </div>
-      )}
 
-      {/* History Drawer */}
-      <Sheet open={historicoOpen} onOpenChange={setHistoricoOpen}>
-        <SheetContent className="sm:max-w-2xl overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Histórico de Eventos</SheetTitle>
-            <SheetDescription>
-              {equipamentoSelecionado?.nm_equipamento} — {equipamentoSelecionado?.cd_equipamento}
-            </SheetDescription>
-          </SheetHeader>
+        {filtrados.length === 0 ? (
+          <div style={{ padding: "32px 12px", textAlign: "center", color: "hsl(var(--muted-foreground))", fontSize: 13 }}>
+            Nenhum equipamento com eventos ativos
+          </div>
+        ) : (
+          filtrados.map((e, i) => (
+            <div
+              key={e.id_equipamento}
+              style={{
+                display: "grid",
+                gridTemplateColumns: colGrid,
+                padding: "10px 12px",
+                paddingLeft: 12,
+                borderBottom: i < filtrados.length - 1 ? "1px solid hsl(var(--border) / 0.5)" : "none",
+                borderLeft: `3px solid ${STATUS_COLOR[e.status_critico] ?? "#94a3b8"}`,
+                background: i % 2 === 1 ? "hsl(var(--muted) / 0.15)" : "transparent",
+                alignItems: "center",
+                cursor: "default",
+              }}
+              onMouseEnter={ev => (ev.currentTarget.style.background = "hsl(var(--muted) / 0.35)")}
+              onMouseLeave={ev => (ev.currentTarget.style.background = i % 2 === 1 ? "hsl(var(--muted) / 0.15)" : "transparent")}
+            >
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{e.cd_equipamento || "—"}</div>
+                <div style={{ fontSize: 11, color: "hsl(var(--muted-foreground))", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {e.nm_equipamento}
+                </div>
+              </div>
 
-          {loadingHistorico ? (
-            <div className="space-y-3 mt-6">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-24" />
-              ))}
+              <div style={{ fontSize: 13, color: "hsl(var(--muted-foreground))", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {e.nm_grupo}
+              </div>
+
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{e.total_eventos}</div>
+
+              <div>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: "2px 8px",
+                  borderRadius: 10,
+                  background: `${STATUS_COLOR[e.status_critico]}22`,
+                  color: STATUS_COLOR[e.status_critico],
+                  whiteSpace: "nowrap",
+                }}>
+                  {STATUS_LABEL[e.status_critico] ?? e.status_critico}
+                </span>
+              </div>
+
+              <div style={{ fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "hsl(var(--foreground))" }}>
+                {e.ultimo_evento}
+              </div>
+
+              <div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  style={{ fontSize: 12, height: 28 }}
+                  onClick={() => router.push(`/eventos?eq=${encodeURIComponent(e.cd_equipamento || e.nm_equipamento)}`)}
+                >
+                  Ver eventos
+                </Button>
+              </div>
             </div>
-          ) : (
-            <div className="mt-6 space-y-4">
-              {historico && historico.length > 0 ? (
-                historico.map((evento) => (
-                  <div key={evento.id} className="border-l-4 pl-4 py-3 space-y-2" style={{
-                    borderColor: evento.criticidade === "critica" ? "#791F1F" :
-                                 evento.criticidade === "alta" ? "#854F0B" :
-                                 evento.criticidade === "media" ? "#185FA5" : "#3B6D11"
-                  }}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-sm">{evento.nm_tipo_evento}</h4>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(evento.criado_em).toLocaleString("pt-BR")} →{" "}
-                          {new Date(evento.dt_fim).toLocaleString("pt-BR")}
-                        </p>
-                      </div>
-                      <Badge className={getCriticalityColor(evento.criticidade)} variant="secondary">
-                        {evento.criticidade.toUpperCase()}
-                      </Badge>
-                    </div>
-
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>Duração: {Math.floor(evento.duracao_minutos / 60)}h {evento.duracao_minutos % 60}min</span>
-                    </div>
-
-                    {evento.observacao_fim && (
-                      <p className="text-sm bg-muted p-2 rounded">
-                        {evento.observacao_fim}
-                      </p>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <p className="text-center text-muted-foreground py-8">
-                  Nenhum evento no histórico
-                </p>
-              )}
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
+          ))
+        )}
+      </div>
     </div>
   );
 }

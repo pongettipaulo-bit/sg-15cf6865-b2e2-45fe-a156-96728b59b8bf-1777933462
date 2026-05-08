@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -66,9 +67,16 @@ const getCriticalityStyle = (criticidade: string): React.CSSProperties => {
 type ModalKey = "assumir" | "escalar" | "encerrar" | "novoPrazo" | "detalhes";
 
 export default function Eventos() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [filtroCriticidade, setFiltroCriticidade] = useState<string>("todas");
+
+  useEffect(() => {
+    if (router.query.eq) {
+      setSearchTerm(String(router.query.eq));
+    }
+  }, [router.query.eq]);
 
   const [eventoSelecionado, setEventoSelecionado] = useState<Evento | null>(null);
   const [modalAberto, setModalAberto] = useState<ModalKey | null>(null);
@@ -194,15 +202,17 @@ export default function Eventos() {
       if (filtroCriticidade !== "todas" && e.criticidade !== filtroCriticidade) return false;
       if (searchTerm) {
         const t = searchTerm.toLowerCase();
+        const cd = equipMeta?.get(e.id_equipamento)?.cd_equipamento;
         return (
-          e.nm_tipo_evento?.toLowerCase().includes(t) ||
-          e.nm_equipamento?.toLowerCase().includes(t) ||
-          e.nm_operacao?.toLowerCase().includes(t)
+          (e.nm_tipo_evento ?? "").toLowerCase().includes(t) ||
+          (e.nm_equipamento ?? "").toLowerCase().includes(t) ||
+          (e.nm_operacao ?? "").toLowerCase().includes(t) ||
+          String(cd ?? "").toLowerCase().includes(t)
         );
       }
       return true;
     });
-  }, [todosEventos, filtroStatus, filtroCriticidade, searchTerm]);
+  }, [todosEventos, filtroStatus, filtroCriticidade, searchTerm, equipMeta]);
 
   // Track last data refresh
   useEffect(() => {
@@ -301,7 +311,7 @@ export default function Eventos() {
             color: evento.status === "atrasado" && evento.prazo_vencido ? "#dc2626" : "#d97706",
             fontWeight: 500,
           }}>
-            {"Prazo: " + format(addHours(new Date(evento.dt_prazo), 3), "dd/MM HH:mm", { locale: ptBR })}
+            {"Prazo: " + format(new Date(evento.dt_prazo), "dd/MM HH:mm", { locale: ptBR })}
           </div>
         )}
 

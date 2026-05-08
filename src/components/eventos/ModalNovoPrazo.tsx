@@ -66,7 +66,7 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
         .from("fila_evento")
         .update({
           status: "escalado",
-          dt_prazo: novoPrazo,
+          dt_prazo: new Date(novoPrazo).toISOString(),
           nivel_escalonamento: novoNivel,
           prazo_vencido: false,
         })
@@ -79,7 +79,7 @@ export function ModalNovoPrazo({ evento, open, onOpenChange }: ModalNovoPrazoPro
         .insert({
           id_fila_evento: evento.id,
           nivel: novoNivel,
-          dt_prazo: novoPrazo,
+          dt_prazo: new Date(novoPrazo).toISOString(),
           id_usuario: profile?.id ?? null,
           nm_contato: contato?.nm_pessoa ?? null,
           observacao: justificativa || null,
